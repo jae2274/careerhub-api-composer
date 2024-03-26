@@ -1,0 +1,85 @@
+syntax = "proto3";
+import "google/protobuf/empty.proto";
+package careerhub.posting_service.restapi_grpc;
+option go_package = "careerhub/posting_service/restapi_grpc";
+
+
+service RestApiGrpc{
+    rpc JobPostings(JobPostingsRequest) returns (JobPostingsResponse);
+    rpc JobPostingDetail(JobPostingDetailRequest) returns (JobPostingDetailResponse);
+    rpc Categories(google.protobuf.Empty) returns (CategoriesResponse);
+    rpc Skills(google.protobuf.Empty) returns (SkillsResponse);
+}
+
+message JobPostingsRequest {
+  int32 page = 1;
+  int32 size = 2;
+  QueryReq queryReq = 3;
+}
+
+message QueryReq {
+  repeated CategoryQueryReq categories = 1;
+  repeated string skillNames = 2;
+  optional int32 minCareer = 3;
+  optional int32 maxCareer = 4;
+}
+
+message CategoryQueryReq {
+  string site = 1;
+  string categoryName = 2;
+}
+
+message JobPostingsResponse {
+  repeated JobPostingRes jobPostings = 1;
+}
+
+message JobPostingRes {
+  string site = 1;
+  string postingId = 2;
+  string title = 3;
+  string companyName = 4;
+  repeated string skills = 5;
+  repeated string categories = 6;
+  optional string imageUrl = 7;
+  repeated string addresses = 8;
+  optional int32 minCareer = 9;
+  optional int32 maxCareer = 10;
+}
+
+message JobPostingDetailRequest {
+  string site = 1;
+  string postingId = 2;
+}
+
+message JobPostingDetailResponse {
+    string site = 1;
+    string postingId = 2;
+    string title = 3;
+    repeated string skills = 4;
+    string intro = 5;
+    string mainTask = 6;
+    string qualifications = 7;
+    string preferred = 8;
+    string benefits = 9;
+    optional string recruitProcess = 10;
+    optional int32 careerMin = 11;
+    optional int32 careerMax = 12;
+    repeated string addresses = 13;
+    string companyId = 14;
+    string companyName = 15;
+    repeated string companyImages = 16;
+    repeated string tags = 17;
+  }
+
+  message CategoriesResponse {
+    repeated CategoryRes categoriesBySite = 1;
+  }
+  
+  message CategoryRes {
+    string site = 1;
+    repeated string categories = 2;
+  }
+
+    message SkillsResponse {
+        repeated string skills = 1;
+    }
