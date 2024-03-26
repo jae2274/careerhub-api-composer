@@ -55,7 +55,6 @@ func (c *Controller) JobPostings(w http.ResponseWriter, r *http.Request) {
 
 	// jobPostings를 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*") //TODO: 이후 세부적으로 설정 필요
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
 }
@@ -81,7 +80,6 @@ func (c *Controller) JobPostingDetail(w http.ResponseWriter, r *http.Request) {
 
 	// jobPostingDetail을 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*") //TODO: 이후 세부적으로 설정 필요
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(resp)
 }
@@ -98,7 +96,6 @@ func (c *Controller) Categories(w http.ResponseWriter, r *http.Request) {
 
 	// categories를 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*") //TODO: 이후 세부적으로 설정 필요
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(categories)
 }
@@ -116,7 +113,6 @@ func (c *Controller) Skills(w http.ResponseWriter, r *http.Request) {
 
 	// skills를 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*") //TODO: 이후 세부적으로 설정 필요
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(skills)
 }

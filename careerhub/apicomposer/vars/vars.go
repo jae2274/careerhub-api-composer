@@ -7,9 +7,11 @@ import (
 )
 
 type Vars struct {
-	PostingGrpcEndpoint string
-	RootPath            string
-	ApiPort             int
+	PostingGrpcEndpoint      string
+	RootPath                 string
+	SecretKey                string
+	AccessControlAllowOrigin *string
+	ApiPort                  int
 }
 
 type ErrNotExistedVar struct {
@@ -31,6 +33,11 @@ func Variables() (*Vars, error) {
 		return nil, err
 	}
 
+	secretKey, err := getFromEnv("SECRET_KEY")
+	if err != nil {
+		return nil, err
+	}
+
 	apiPort, err := getFromEnv("API_PORT")
 	if err != nil {
 		return nil, err
@@ -41,10 +48,14 @@ func Variables() (*Vars, error) {
 		return nil, fmt.Errorf("API_PORT is not integer.\tAPI_PORT: %s", apiPort)
 	}
 
+	accesControlAllowOrigin := getFromEnvPtr("ACCESS_CONTROL_ALLOW_ORIGIN")
+
 	return &Vars{
-		PostingGrpcEndpoint: postingGrpcEndpoint,
-		RootPath:            os.Getenv("ROOT_PATH"),
-		ApiPort:             int(apiPortInt),
+		PostingGrpcEndpoint:      postingGrpcEndpoint,
+		RootPath:                 os.Getenv("ROOT_PATH"),
+		SecretKey:                secretKey,
+		ApiPort:                  int(apiPortInt),
+		AccessControlAllowOrigin: accesControlAllowOrigin,
 	}, nil
 }
 
@@ -56,4 +67,14 @@ func getFromEnv(envVar string) (string, error) {
 	}
 
 	return ev, nil
+}
+
+func getFromEnvPtr(envVar string) *string {
+	ev := os.Getenv(envVar)
+
+	if ev == "" {
+		return nil
+	}
+
+	return &ev
 }
