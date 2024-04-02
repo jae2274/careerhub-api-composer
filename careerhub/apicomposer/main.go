@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
@@ -16,11 +17,36 @@ import (
 )
 
 const (
+	app     = "api-composer"
+	service = "careerhub"
+
+	ctxKeyTraceID = "trace_id"
+
 	needRole = "ROLE_CAREERHUB_USER"
 )
 
+func initLogger(ctx context.Context) error {
+	llog.SetMetadata("service", service)
+	llog.SetMetadata("app", app)
+	llog.SetDefaultContextData(ctxKeyTraceID)
+
+	hostname, err := os.Hostname()
+	if err != nil {
+		return err
+	}
+
+	llog.SetMetadata("hostname", hostname)
+
+	return nil
+}
+
 func main() {
 	mainCtx := context.Background()
+
+	err := initLogger(mainCtx)
+	checkErr(mainCtx, err)
+	llog.Info(mainCtx, "Start Application")
+
 	envVars, err := vars.Variables()
 	checkErr(mainCtx, err)
 
@@ -37,8 +63,6 @@ func main() {
 
 	ctrler.RegisterRoutes(envVars.RootPath)
 
-	llog.Msg("Composed api server is running").Level(llog.INFO).Data("apiPort", envVars.ApiPort).Data("rootPath", envVars.RootPath).Log(mainCtx)
-
 	var allowOrigins []string
 	if envVars.AccessControlAllowOrigin != nil {
 		allowOrigins = append(allowOrigins, *envVars.AccessControlAllowOrigin)
@@ -47,6 +71,8 @@ func main() {
 	headersOk := handlers.AllowedHeaders([]string{"X-Requested-With", "Content-Type", "Authorization"})
 	methodsOk := handlers.AllowedMethods([]string{"GET", "HEAD", "POST", "PUT", "OPTIONS"})
 
+	llog.Msg("Start composed api server").Level(llog.INFO).Data("port", envVars.ApiPort).Data("rootPath", envVars.RootPath).Log(mainCtx)
+
 	err = http.ListenAndServe(fmt.Sprintf(":%d", envVars.ApiPort), handlers.CORS(originsOk, headersOk, methodsOk)(router))
 	checkErr(mainCtx, err)
 }
@@ -54,6 +80,6 @@ func main() {
 func checkErr(ctx context.Context, err error) {
 	if err != nil {
 		llog.LogErr(ctx, err)
-		panic(err)
+		os.Exit(1)
 	}
 }

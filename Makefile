@@ -46,6 +46,6 @@ proto:
 ## test: runs all tests
 test:	
 	@echo "Testing..."
-	@env POSTING_GRPC_ENDPOINT=${POSTING_GRPC_ENDPOINT} API_PORT=${API_PORT} SECRET_KEY=${SECRET_KEY} go test -p 1 -timeout 60s ./test/...
+	@env POSTING_GRPC_ENDPOINT=${POSTING_GRPC_ENDPOINT} API_PORT=${API_PORT} SECRET_KEY=${SECRET_KEY} go test -p 1 -timeout 60s ./...
 	
 
