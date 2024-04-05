@@ -12,6 +12,8 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
 	"github.com/jae2274/goutils/llog"
+	"github.com/jae2274/goutils/mw"
+	"github.com/jae2274/goutils/mw/httpmw"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )
@@ -20,7 +22,7 @@ const (
 	app     = "api-composer"
 	service = "careerhub"
 
-	ctxKeyTraceID = "trace_id"
+	ctxKeyTraceID = string(mw.CtxKeyTraceID)
 
 	needRole = "ROLE_CAREERHUB_USER"
 )
@@ -58,7 +60,7 @@ func main() {
 	router := mux.NewRouter()
 	jwtResolver := jwtresolver.NewJwtResolver(envVars.SecretKey)
 	authMiddleware := jwtResolver.CheckHasRole(needRole)
-	router.Use(authMiddleware)
+	router.Use(authMiddleware, httpmw.SetTraceIdMW("TODO_REMOVE_ME")) //TODO: 불필요한 파라미터가 잘못 포함되어 있어 이후 라이브러리 수정 필요
 	ctrler := NewController(postingClient, router)
 
 	ctrler.RegisterRoutes(envVars.RootPath)
