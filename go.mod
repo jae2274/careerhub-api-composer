@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/handlers v1.5.2 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
-	github.com/jae2274/goutils v1.0.27 // indirect
+	github.com/jae2274/goutils v1.0.28 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/stretchr/testify v1.9.0 // indirect
 	golang.org/x/net v0.21.0 // indirect

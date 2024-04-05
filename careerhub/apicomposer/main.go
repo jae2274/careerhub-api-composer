@@ -60,7 +60,7 @@ func main() {
 	router := mux.NewRouter()
 	jwtResolver := jwtresolver.NewJwtResolver(envVars.SecretKey)
 	authMiddleware := jwtResolver.CheckHasRole(needRole)
-	router.Use(authMiddleware, httpmw.SetTraceIdMW("TODO_REMOVE_ME")) //TODO: 불필요한 파라미터가 잘못 포함되어 있어 이후 라이브러리 수정 필요
+	router.Use(authMiddleware, httpmw.SetTraceIdMW()) //TODO: 불필요한 파라미터가 잘못 포함되어 있어 이후 라이브러리 수정 필요
 	ctrler := NewController(postingClient, router)
 
 	ctrler.RegisterRoutes(envVars.RootPath)
