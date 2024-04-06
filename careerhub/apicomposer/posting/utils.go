@@ -12,7 +12,7 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 )
 
-func ExtractJobPostingsRequest(r *http.Request, initPage int) (*restapi_grpc.JobPostingsRequest, error) {
+func ExtractJobPostingsRequest(r *http.Request, initPage int) (*JobPostingsRequest, error) {
 	queryValues := r.URL.Query()
 
 	// "page" 값 추출
@@ -38,14 +38,14 @@ func ExtractJobPostingsRequest(r *http.Request, initPage int) (*restapi_grpc.Job
 		return nil, err
 	}
 
-	return &restapi_grpc.JobPostingsRequest{
+	return &JobPostingsRequest{
 		Page:     int32(page),
 		Size:     int32(size),
 		QueryReq: queryReq,
 	}, nil
 }
 
-func GetQuery(encodedQuery string) (*restapi_grpc.QueryReq, error) {
+func GetQuery(encodedQuery string) (*QueryReq, error) {
 
 	bytes, err := base64.StdEncoding.DecodeString(encodedQuery)
 	if err != nil {
@@ -54,7 +54,7 @@ func GetQuery(encodedQuery string) (*restapi_grpc.QueryReq, error) {
 		return nil, fmt.Errorf("invalid encoded_query value. failed to decode. %s", encodedQuery)
 	}
 
-	var queryReq restapi_grpc.QueryReq
+	var queryReq QueryReq
 	err = json.Unmarshal(bytes, &queryReq)
 	if err != nil {
 		return nil, fmt.Errorf("invalid encoded_query value. failed to unmarshal. %s", string(bytes))

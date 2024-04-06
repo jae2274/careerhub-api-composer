@@ -6,9 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 	"github.com/jae2274/goutils/llog"
-	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -17,14 +15,14 @@ const (
 )
 
 type Controller struct {
-	postingClient restapi_grpc.RestApiGrpcClient
-	router        *mux.Router
+	postingService posting.PostingService
+	router         *mux.Router
 }
 
-func NewController(postingClient restapi_grpc.RestApiGrpcClient, router *mux.Router) *Controller {
+func NewController(service posting.PostingService, router *mux.Router) *Controller {
 	return &Controller{
-		postingClient: postingClient,
-		router:        router,
+		postingService: service,
+		router:         router,
 	}
 }
 
@@ -46,7 +44,7 @@ func (c *Controller) JobPostings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := c.postingClient.JobPostings(reqCtx, req)
+	resp, err := c.postingService.JobPostings(reqCtx, req)
 	if err != nil {
 		llog.LogErr(reqCtx, err)
 		http.Error(w, messageInternalServerError, http.StatusInternalServerError)
@@ -70,7 +68,7 @@ func (c *Controller) JobPostingDetail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := c.postingClient.JobPostingDetail(reqCtx, req)
+	resp, err := c.postingService.JobPostingDetail(reqCtx, req)
 
 	if err != nil {
 		llog.LogErr(reqCtx, err)
@@ -87,7 +85,7 @@ func (c *Controller) JobPostingDetail(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) Categories(w http.ResponseWriter, r *http.Request) {
 	reqCtx := r.Context()
 
-	categories, err := c.postingClient.Categories(reqCtx, &emptypb.Empty{})
+	categories, err := c.postingService.Categories(reqCtx)
 	if err != nil {
 		llog.LogErr(reqCtx, err)
 		http.Error(w, messageInternalServerError, http.StatusInternalServerError)
@@ -103,7 +101,7 @@ func (c *Controller) Categories(w http.ResponseWriter, r *http.Request) {
 func (c *Controller) Skills(w http.ResponseWriter, r *http.Request) {
 	reqCtx := r.Context()
 
-	skills, err := c.postingClient.Skills(reqCtx, &emptypb.Empty{})
+	skills, err := c.postingService.Skills(reqCtx)
 
 	if err != nil {
 		llog.LogErr(reqCtx, err)
