@@ -8,7 +8,6 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
@@ -25,7 +24,7 @@ const (
 
 	ctxKeyTraceID = string(mw.CtxKeyTraceID)
 
-	needRole = "ROLE_CAREERHUB_USER"
+	// needRole = "ROLE_CAREERHUB_USER"
 )
 
 func initLogger(ctx context.Context) error {
@@ -59,9 +58,11 @@ func main() {
 	postingClient := restapi_grpc.NewRestApiGrpcClient(conn)
 
 	router := mux.NewRouter()
-	jwtResolver := jwtresolver.NewJwtResolver(envVars.SecretKey)
-	authMiddleware := jwtResolver.CheckHasRole(needRole)
-	router.Use(authMiddleware, httpmw.SetTraceIdMW()) //TODO: 불필요한 파라미터가 잘못 포함되어 있어 이후 라이브러리 수정 필요
+	// jwtResolver := jwtresolver.NewJwtResolver(envVars.SecretKey)
+	// authMiddleware := jwtResolver.CheckHasRole(needRole)
+	router.Use(
+		// authMiddleware,
+		httpmw.SetTraceIdMW()) //TODO: 불필요한 파라미터가 잘못 포함되어 있어 이후 라이브러리 수정 필요
 	ctrler := NewController(
 		posting.NewPostingService(postingClient),
 		router,
