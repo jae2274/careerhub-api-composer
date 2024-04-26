@@ -8,6 +8,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/controller"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
@@ -61,7 +62,7 @@ func main() {
 
 	rootRouter.Use(
 		httpmw.SetTraceIdMW())
-	ctrler := NewController(
+	ctrler := controller.NewController(
 		posting.NewPostingService(postingClient),
 		rootRouter,
 	)
