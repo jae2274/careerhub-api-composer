@@ -3,7 +3,6 @@ package middleware
 import (
 	"io"
 	"net/http"
-	"slices"
 	"testing"
 	"time"
 
@@ -17,91 +16,148 @@ import (
 func TestMiddleware(t *testing.T) {
 	secretKey := "just a secret key"
 	rootURL := "http://localhost:8080"
-	t.Run("response 'Hello, World!' without jwt", func(t *testing.T) {
-		res, err := initClient(t, secretKey).Get(rootURL + "/hello")
-		require.NoError(t, err)
 
-		defer res.Body.Close()
+	getBody := func(res *http.Response) string {
 		body, err := io.ReadAll(res.Body)
 		require.NoError(t, err)
-		require.Equal(t, "Hello, World!", string(body))
+		return string(body)
+	}
+
+	t.Run("don't need role", func(t *testing.T) {
+		t.Run("response 'Hello, World!' without jwt", func(t *testing.T) {
+			res, err := initClient(t, secretKey).Get(rootURL + "/hello")
+			require.NoError(t, err)
+
+			defer res.Body.Close()
+			require.Equal(t, "Hello, World!", getBody(res))
+		})
+
+		t.Run("response Hello ${userId} with jwt", func(t *testing.T) {
+			req, err := http.NewRequest("GET", rootURL+"/hello", nil)
+			require.NoError(t, err)
+			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
+
+			res, err := initClient(t, secretKey).Do(req)
+			require.NoError(t, err)
+
+			defer res.Body.Close()
+			require.Equal(t, "Hello, Jyo Liar!", getBody(res))
+		})
 	})
 
-	t.Run("response Hello ${userId} with jwt", func(t *testing.T) {
-		req, err := http.NewRequest("GET", rootURL+"/hello", nil)
-		require.NoError(t, err)
-		req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
+	t.Run("need role: admin", func(t *testing.T) {
+		t.Run("response 401 without jwt", func(t *testing.T) {
+			res, err := initClient(t, secretKey).Get(rootURL + "/admin")
+			require.NoError(t, err)
+			defer res.Body.Close()
 
-		res, err := initClient(t, secretKey).Do(req)
-		require.NoError(t, err)
+			require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+			require.Equal(t, "", getBody(res))
+		})
 
-		defer res.Body.Close()
-		body, err := io.ReadAll(res.Body)
-		require.NoError(t, err)
-		require.Equal(t, "Hello, Jyo Liar!", string(body))
+		t.Run("response 403 with jwt but without role", func(t *testing.T) {
+			req, err := http.NewRequest("GET", rootURL+"/admin", nil)
+			require.NoError(t, err)
+			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
+
+			res, err := initClient(t, secretKey).Do(req)
+			require.NoError(t, err)
+
+			defer res.Body.Close()
+			require.Equal(t, http.StatusForbidden, res.StatusCode)
+			require.Equal(t, "", getBody(res))
+		})
+
+		t.Run("response 200 with jwt and role", func(t *testing.T) {
+			req, err := http.NewRequest("GET", rootURL+"/admin", nil)
+			require.NoError(t, err)
+			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{"admin"}))
+
+			res, err := initClient(t, secretKey).Do(req)
+			require.NoError(t, err)
+
+			defer res.Body.Close()
+			require.Equal(t, http.StatusOK, res.StatusCode)
+			require.Equal(t, "Hello, Jyo Liar!", getBody(res))
+		})
 	})
 
-	t.Run("response 401 if call admin api and without jwt", func(t *testing.T) {
-		res, err := initClient(t, secretKey).Get(rootURL + "/admin")
-		require.NoError(t, err)
-		defer res.Body.Close()
+	t.Run("need role for specify url path: manager", func(t *testing.T) {
+		t.Run("all response 401 without jwt", func(t *testing.T) {
+			testClient := initClient(t, secretKey)
 
-		require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
+				res, err := testClient.Get(rootURL + path)
+				require.NoError(t, err)
+				defer res.Body.Close()
+
+				require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+				require.Equal(t, "", getBody(res))
+			}
+		})
+
+		t.Run("response 403 with jwt but without role", func(t *testing.T) {
+			testClient := initClient(t, secretKey)
+
+			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
+				req, err := http.NewRequest("GET", rootURL+path, nil)
+				require.NoError(t, err)
+				req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
+
+				res, err := testClient.Do(req)
+				require.NoError(t, err)
+
+				defer res.Body.Close()
+				require.Equal(t, http.StatusForbidden, res.StatusCode)
+				require.Equal(t, "", getBody(res))
+			}
+		})
+
+		t.Run("response 200 with jwt and role", func(t *testing.T) {
+			testClient := initClient(t, secretKey)
+
+			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
+				req, err := http.NewRequest("GET", rootURL+path, nil)
+				require.NoError(t, err)
+				req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{"manager"}))
+
+				res, err := testClient.Do(req)
+				require.NoError(t, err)
+
+				defer res.Body.Close()
+				require.Equal(t, http.StatusOK, res.StatusCode)
+				require.Equal(t, "Hello, Jyo Liar!", getBody(res))
+			}
+		})
 	})
 
-	t.Run("response 403 if call admin api and with jwt but without role", func(t *testing.T) {
-		req, err := http.NewRequest("GET", rootURL+"/admin", nil)
-		require.NoError(t, err)
-		req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
-
-		res, err := initClient(t, secretKey).Do(req)
-		require.NoError(t, err)
-
-		defer res.Body.Close()
-		require.Equal(t, http.StatusForbidden, res.StatusCode)
-	})
-
-	t.Run("response 200 if call admin api and with jwt and role", func(t *testing.T) {
-		req, err := http.NewRequest("GET", rootURL+"/admin", nil)
-		require.NoError(t, err)
-		req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{"admin"}))
-
-		res, err := initClient(t, secretKey).Do(req)
-		require.NoError(t, err)
-
-		defer res.Body.Close()
-		require.Equal(t, http.StatusOK, res.StatusCode)
-	})
 }
 
 func initRouter() *mux.Router {
-	router := mux.NewRouter()
 	jr := jwtresolver.NewJwtResolver("just a secret key")
-	router.Use(middleware.SetClaimsMW(jr))
-
-	router.HandleFunc("/hello", func(w http.ResponseWriter, r *http.Request) {
+	commonHandleFunc := func(w http.ResponseWriter, r *http.Request) {
 		claims, ok := middleware.GetClaims(r.Context())
 		if ok {
 			w.Write([]byte("Hello, " + claims.UserId + "!"))
 			return
 		}
 		w.Write([]byte("Hello, World!"))
-	})
+	}
 
-	router.HandleFunc("/admin", func(w http.ResponseWriter, r *http.Request) {
-		claims, ok := middleware.GetClaims(r.Context())
-		if !ok {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
+	router := mux.NewRouter()
+	router.Use(middleware.SetClaimsMW(jr))
+	router.HandleFunc("/hello", commonHandleFunc)
 
-		if !slices.Contains(claims.Roles, "admin") {
-			w.WriteHeader(http.StatusForbidden)
-			return
-		}
+	adminRouter := router.PathPrefix("/admin").Subrouter()
+	adminRouter.Use(middleware.CheckHasRole("admin"))
+	adminRouter.HandleFunc("", commonHandleFunc)
 
-		w.WriteHeader(http.StatusOK)
-	})
+	managerRouter := router.PathPrefix("/manager").Subrouter()
+	managerRouter.Use(middleware.CheckHasRole("manager"))
+	managerRouter.HandleFunc("", commonHandleFunc)
+	managerRouter.HandleFunc("/a", commonHandleFunc)
+	managerRouter.HandleFunc("/a/b", commonHandleFunc)
+	managerRouter.HandleFunc("/a/b/c", commonHandleFunc)
 
 	return router
 }
