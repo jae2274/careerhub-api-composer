@@ -62,7 +62,7 @@ func main() {
 
 	rootRouter.Use(
 		httpmw.SetTraceIdMW())
-	ctrler := controller.NewController(
+	ctrler := controller.NewJobPostingController(
 		posting.NewPostingService(postingClient),
 		rootRouter,
 	)

@@ -14,17 +14,17 @@ const (
 	messageInternalServerError = "Internal Server Error"
 )
 
-type Controller struct {
+type JobPostingController struct {
 	postingService posting.PostingService
 }
 
-func NewController(service posting.PostingService, router *mux.Router) *Controller {
-	return &Controller{
+func NewJobPostingController(service posting.PostingService, router *mux.Router) *JobPostingController {
+	return &JobPostingController{
 		postingService: service,
 	}
 }
 
-func (c *Controller) RegisterRoutes(router *mux.Router) {
+func (c *JobPostingController) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/job_postings", c.JobPostings).Methods("GET")
 	router.HandleFunc("/job_postings/{site}/{postingId}", c.JobPostingDetail).Methods("GET")
 	router.HandleFunc("/categories", c.Categories).Methods("GET")
@@ -32,7 +32,7 @@ func (c *Controller) RegisterRoutes(router *mux.Router) {
 	// c.router.HandleFunc(rootPath + "/match_job", c.).Methods("GET")
 }
 
-func (c *Controller) JobPostings(w http.ResponseWriter, r *http.Request) {
+func (c *JobPostingController) JobPostings(w http.ResponseWriter, r *http.Request) {
 	reqCtx := r.Context()
 
 	req, err := posting.ExtractJobPostingsRequest(r, initPage)
@@ -56,7 +56,7 @@ func (c *Controller) JobPostings(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (c *Controller) JobPostingDetail(w http.ResponseWriter, r *http.Request) {
+func (c *JobPostingController) JobPostingDetail(w http.ResponseWriter, r *http.Request) {
 	reqCtx := r.Context()
 
 	req, err := posting.ExtractJobPostingDetailRequest(r)
@@ -81,7 +81,7 @@ func (c *Controller) JobPostingDetail(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(resp)
 }
 
-func (c *Controller) Categories(w http.ResponseWriter, r *http.Request) {
+func (c *JobPostingController) Categories(w http.ResponseWriter, r *http.Request) {
 	reqCtx := r.Context()
 
 	categories, err := c.postingService.Categories(reqCtx)
@@ -97,7 +97,7 @@ func (c *Controller) Categories(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(categories)
 }
 
-func (c *Controller) Skills(w http.ResponseWriter, r *http.Request) {
+func (c *JobPostingController) Skills(w http.ResponseWriter, r *http.Request) {
 	reqCtx := r.Context()
 
 	skills, err := c.postingService.Skills(reqCtx)
