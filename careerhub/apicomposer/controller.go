@@ -16,21 +16,19 @@ const (
 
 type Controller struct {
 	postingService posting.PostingService
-	router         *mux.Router
 }
 
 func NewController(service posting.PostingService, router *mux.Router) *Controller {
 	return &Controller{
 		postingService: service,
-		router:         router,
 	}
 }
 
-func (c *Controller) RegisterRoutes(rootPath string) {
-	c.router.HandleFunc(rootPath+"/job_postings", c.JobPostings).Methods("GET")
-	c.router.HandleFunc(rootPath+"/job_postings/{site}/{postingId}", c.JobPostingDetail).Methods("GET")
-	c.router.HandleFunc(rootPath+"/categories", c.Categories).Methods("GET")
-	c.router.HandleFunc(rootPath+"/skills", c.Skills).Methods("GET")
+func (c *Controller) RegisterRoutes(router *mux.Router) {
+	router.HandleFunc("/job_postings", c.JobPostings).Methods("GET")
+	router.HandleFunc("/job_postings/{site}/{postingId}", c.JobPostingDetail).Methods("GET")
+	router.HandleFunc("/categories", c.Categories).Methods("GET")
+	router.HandleFunc("/skills", c.Skills).Methods("GET")
 	// c.router.HandleFunc(rootPath + "/match_job", c.).Methods("GET")
 }
 

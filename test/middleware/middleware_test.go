@@ -23,7 +23,7 @@ func TestMiddleware(t *testing.T) {
 		return string(body)
 	}
 
-	t.Run("don't need role", func(t *testing.T) {
+	t.Run("don't need jwt", func(t *testing.T) {
 		t.Run("response 'Hello, World!' without jwt", func(t *testing.T) {
 			res, err := initClient(t, secretKey).Get(rootURL + "/hello")
 			require.NoError(t, err)
@@ -41,6 +41,30 @@ func TestMiddleware(t *testing.T) {
 			require.NoError(t, err)
 
 			defer res.Body.Close()
+			require.Equal(t, "Hello, Jyo Liar!", getBody(res))
+		})
+	})
+
+	t.Run("need login", func(t *testing.T) {
+		t.Run("response 401 without jwt", func(t *testing.T) {
+			res, err := initClient(t, secretKey).Get(rootURL + "/my")
+			require.NoError(t, err)
+			defer res.Body.Close()
+
+			require.Equal(t, http.StatusUnauthorized, res.StatusCode)
+			require.Equal(t, "", getBody(res))
+		})
+
+		t.Run("response 200 with jwt", func(t *testing.T) {
+			req, err := http.NewRequest("GET", rootURL+"/my", nil)
+			require.NoError(t, err)
+			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
+
+			res, err := initClient(t, secretKey).Do(req)
+			require.NoError(t, err)
+
+			defer res.Body.Close()
+			require.Equal(t, http.StatusOK, res.StatusCode)
 			require.Equal(t, "Hello, Jyo Liar!", getBody(res))
 		})
 	})
@@ -147,6 +171,10 @@ func initRouter() *mux.Router {
 	router := mux.NewRouter()
 	router.Use(middleware.SetClaimsMW(jr))
 	router.HandleFunc("/hello", commonHandleFunc)
+
+	myRouter := router.PathPrefix("/my").Subrouter()
+	myRouter.Use(middleware.CheckJustLoggedIn)
+	myRouter.HandleFunc("", commonHandleFunc)
 
 	adminRouter := router.PathPrefix("/admin").Subrouter()
 	adminRouter.Use(middleware.CheckHasRole("admin"))

@@ -9,6 +9,10 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 )
 
+type claimsKey string
+
+const claimsKeyStr claimsKey = "claims"
+
 func SetClaimsMW(jr *jwtresolver.JwtResolver) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -23,13 +27,25 @@ func SetClaimsMW(jr *jwtresolver.JwtResolver) mux.MiddlewareFunc {
 					w.WriteHeader(http.StatusUnauthorized)
 				}
 
-				ctx := context.WithValue(r.Context(), "claims", claims)
+				ctx := context.WithValue(r.Context(), claimsKeyStr, claims)
 				r = r.WithContext(ctx)
 			}
 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func CheckJustLoggedIn(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, ok := GetClaims(r.Context())
+		if !ok {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func CheckHasRole(role string) mux.MiddlewareFunc {
@@ -52,6 +68,6 @@ func CheckHasRole(role string) mux.MiddlewareFunc {
 }
 
 func GetClaims(ctx context.Context) (*jwtresolver.CustomClaims, bool) {
-	claims, ok := ctx.Value("claims").(*jwtresolver.CustomClaims)
+	claims, ok := ctx.Value(claimsKeyStr).(*jwtresolver.CustomClaims)
 	return claims, ok
 }

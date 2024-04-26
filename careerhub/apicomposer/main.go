@@ -52,23 +52,21 @@ func main() {
 	envVars, err := vars.Variables()
 	checkErr(mainCtx, err)
 
-	conn, err := grpc.Dial(envVars.PostingGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(envVars.PostingGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	checkErr(mainCtx, err)
 
 	postingClient := restapi_grpc.NewRestApiGrpcClient(conn)
 
-	router := mux.NewRouter()
-	// jwtResolver := jwtresolver.NewJwtResolver(envVars.SecretKey)
-	// authMiddleware := jwtResolver.CheckHasRole(needRole)
-	router.Use(
-		// authMiddleware,
-		httpmw.SetTraceIdMW()) //TODO: 불필요한 파라미터가 잘못 포함되어 있어 이후 라이브러리 수정 필요
+	rootRouter := mux.NewRouter().PathPrefix(envVars.RootPath).Subrouter()
+
+	rootRouter.Use(
+		httpmw.SetTraceIdMW())
 	ctrler := NewController(
 		posting.NewPostingService(postingClient),
-		router,
+		rootRouter,
 	)
 
-	ctrler.RegisterRoutes(envVars.RootPath)
+	ctrler.RegisterRoutes(rootRouter)
 
 	var allowOrigins []string
 	if envVars.AccessControlAllowOrigin != nil {
@@ -80,7 +78,7 @@ func main() {
 
 	llog.Msg("Start composed api server").Level(llog.INFO).Data("port", envVars.ApiPort).Data("rootPath", envVars.RootPath).Log(mainCtx)
 
-	err = http.ListenAndServe(fmt.Sprintf(":%d", envVars.ApiPort), handlers.CORS(originsOk, headersOk, methodsOk)(router))
+	err = http.ListenAndServe(fmt.Sprintf(":%d", envVars.ApiPort), handlers.CORS(originsOk, headersOk, methodsOk)(rootRouter))
 	checkErr(mainCtx, err)
 }
 
