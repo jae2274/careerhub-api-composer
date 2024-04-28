@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"testing"
@@ -10,12 +11,14 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
+	"github.com/jae2274/goutils/mw/httpmw"
 	"github.com/stretchr/testify/require"
 )
 
 func TestMiddleware(t *testing.T) {
 	secretKey := "just a secret key"
-	rootURL := "http://localhost:8080"
+	port := 33333
+	rootURL := fmt.Sprintf("http://localhost:%d", port)
 
 	getBody := func(res *http.Response) string {
 		body, err := io.ReadAll(res.Body)
@@ -25,7 +28,7 @@ func TestMiddleware(t *testing.T) {
 
 	t.Run("don't need jwt", func(t *testing.T) {
 		t.Run("response 'Hello, World!' without jwt", func(t *testing.T) {
-			res, err := initClient(t, secretKey).Get(rootURL + "/hello")
+			res, err := initClient(t, secretKey, port).Get(rootURL + "/hello")
 			require.NoError(t, err)
 
 			defer res.Body.Close()
@@ -37,7 +40,7 @@ func TestMiddleware(t *testing.T) {
 			require.NoError(t, err)
 			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
 
-			res, err := initClient(t, secretKey).Do(req)
+			res, err := initClient(t, secretKey, port).Do(req)
 			require.NoError(t, err)
 
 			defer res.Body.Close()
@@ -47,7 +50,7 @@ func TestMiddleware(t *testing.T) {
 
 	t.Run("need login", func(t *testing.T) {
 		t.Run("response 401 without jwt", func(t *testing.T) {
-			res, err := initClient(t, secretKey).Get(rootURL + "/my")
+			res, err := initClient(t, secretKey, port).Get(rootURL + "/my")
 			require.NoError(t, err)
 			defer res.Body.Close()
 
@@ -60,7 +63,7 @@ func TestMiddleware(t *testing.T) {
 			require.NoError(t, err)
 			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
 
-			res, err := initClient(t, secretKey).Do(req)
+			res, err := initClient(t, secretKey, port).Do(req)
 			require.NoError(t, err)
 
 			defer res.Body.Close()
@@ -71,7 +74,7 @@ func TestMiddleware(t *testing.T) {
 
 	t.Run("need role: admin", func(t *testing.T) {
 		t.Run("response 401 without jwt", func(t *testing.T) {
-			res, err := initClient(t, secretKey).Get(rootURL + "/admin")
+			res, err := initClient(t, secretKey, port).Get(rootURL + "/admin")
 			require.NoError(t, err)
 			defer res.Body.Close()
 
@@ -84,7 +87,7 @@ func TestMiddleware(t *testing.T) {
 			require.NoError(t, err)
 			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
 
-			res, err := initClient(t, secretKey).Do(req)
+			res, err := initClient(t, secretKey, port).Do(req)
 			require.NoError(t, err)
 
 			defer res.Body.Close()
@@ -97,7 +100,7 @@ func TestMiddleware(t *testing.T) {
 			require.NoError(t, err)
 			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{"admin"}))
 
-			res, err := initClient(t, secretKey).Do(req)
+			res, err := initClient(t, secretKey, port).Do(req)
 			require.NoError(t, err)
 
 			defer res.Body.Close()
@@ -108,7 +111,7 @@ func TestMiddleware(t *testing.T) {
 
 	t.Run("need role for specify url path: manager", func(t *testing.T) {
 		t.Run("all response 401 without jwt", func(t *testing.T) {
-			testClient := initClient(t, secretKey)
+			testClient := initClient(t, secretKey, port)
 
 			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
 				res, err := testClient.Get(rootURL + path)
@@ -121,7 +124,7 @@ func TestMiddleware(t *testing.T) {
 		})
 
 		t.Run("response 403 with jwt but without role", func(t *testing.T) {
-			testClient := initClient(t, secretKey)
+			testClient := initClient(t, secretKey, port)
 
 			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
 				req, err := http.NewRequest("GET", rootURL+path, nil)
@@ -138,7 +141,7 @@ func TestMiddleware(t *testing.T) {
 		})
 
 		t.Run("response 200 with jwt and role", func(t *testing.T) {
-			testClient := initClient(t, secretKey)
+			testClient := initClient(t, secretKey, port)
 
 			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
 				req, err := http.NewRequest("GET", rootURL+path, nil)
@@ -169,7 +172,7 @@ func initRouter() *mux.Router {
 	}
 
 	router := mux.NewRouter()
-	router.Use(middleware.SetClaimsMW(jr))
+	router.Use(httpmw.SetTraceIdMW(), middleware.SetClaimsMW(jr))
 	router.HandleFunc("/hello", commonHandleFunc)
 
 	myRouter := router.PathPrefix("/my").Subrouter()
@@ -190,11 +193,11 @@ func initRouter() *mux.Router {
 	return router
 }
 
-func initClient(t *testing.T, secretKey string) *http.Client {
+func initClient(t *testing.T, secretKey string, port int) *http.Client {
 	router := initRouter()
 
 	go func() {
-		http.ListenAndServe(":8080", router)
+		http.ListenAndServe(fmt.Sprintf(":%d", port), router)
 	}()
 
 	return &http.Client{}

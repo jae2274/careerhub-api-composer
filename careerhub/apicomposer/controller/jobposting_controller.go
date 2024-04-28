@@ -18,7 +18,7 @@ type JobPostingController struct {
 	postingService posting.PostingService
 }
 
-func NewJobPostingController(service posting.PostingService, router *mux.Router) *JobPostingController {
+func NewJobPostingController(service posting.PostingService) *JobPostingController {
 	return &JobPostingController{
 		postingService: service,
 	}

@@ -23,10 +23,10 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RestApiGrpcClient interface {
 	FindMatchJob(ctx context.Context, in *FindMatchJobRequest, opts ...grpc.CallOption) (*FindMatchJobResponse, error)
-	AddCondition(ctx context.Context, in *AddConditionRequest, opts ...grpc.CallOption) (*IsSuccess, error)
-	UpdateCondition(ctx context.Context, in *UpdateConditionRequest, opts ...grpc.CallOption) (*IsSuccess, error)
-	DeleteCondition(ctx context.Context, in *DeleteConditionRequest, opts ...grpc.CallOption) (*IsSuccess, error)
-	UpdateAgreeToMail(ctx context.Context, in *UpdateAgreeToMailRequest, opts ...grpc.CallOption) (*IsSuccess, error)
+	AddCondition(ctx context.Context, in *AddConditionRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error)
+	UpdateCondition(ctx context.Context, in *UpdateConditionRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error)
+	DeleteCondition(ctx context.Context, in *DeleteConditionRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error)
+	UpdateAgreeToMail(ctx context.Context, in *UpdateAgreeToMailRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error)
 }
 
 type restApiGrpcClient struct {
@@ -46,8 +46,8 @@ func (c *restApiGrpcClient) FindMatchJob(ctx context.Context, in *FindMatchJobRe
 	return out, nil
 }
 
-func (c *restApiGrpcClient) AddCondition(ctx context.Context, in *AddConditionRequest, opts ...grpc.CallOption) (*IsSuccess, error) {
-	out := new(IsSuccess)
+func (c *restApiGrpcClient) AddCondition(ctx context.Context, in *AddConditionRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error) {
+	out := new(IsSuccessResponse)
 	err := c.cc.Invoke(ctx, "/careerhub.userinfo_service.restapi_grpc.RestApiGrpc/AddCondition", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -55,8 +55,8 @@ func (c *restApiGrpcClient) AddCondition(ctx context.Context, in *AddConditionRe
 	return out, nil
 }
 
-func (c *restApiGrpcClient) UpdateCondition(ctx context.Context, in *UpdateConditionRequest, opts ...grpc.CallOption) (*IsSuccess, error) {
-	out := new(IsSuccess)
+func (c *restApiGrpcClient) UpdateCondition(ctx context.Context, in *UpdateConditionRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error) {
+	out := new(IsSuccessResponse)
 	err := c.cc.Invoke(ctx, "/careerhub.userinfo_service.restapi_grpc.RestApiGrpc/UpdateCondition", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -64,8 +64,8 @@ func (c *restApiGrpcClient) UpdateCondition(ctx context.Context, in *UpdateCondi
 	return out, nil
 }
 
-func (c *restApiGrpcClient) DeleteCondition(ctx context.Context, in *DeleteConditionRequest, opts ...grpc.CallOption) (*IsSuccess, error) {
-	out := new(IsSuccess)
+func (c *restApiGrpcClient) DeleteCondition(ctx context.Context, in *DeleteConditionRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error) {
+	out := new(IsSuccessResponse)
 	err := c.cc.Invoke(ctx, "/careerhub.userinfo_service.restapi_grpc.RestApiGrpc/DeleteCondition", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -73,8 +73,8 @@ func (c *restApiGrpcClient) DeleteCondition(ctx context.Context, in *DeleteCondi
 	return out, nil
 }
 
-func (c *restApiGrpcClient) UpdateAgreeToMail(ctx context.Context, in *UpdateAgreeToMailRequest, opts ...grpc.CallOption) (*IsSuccess, error) {
-	out := new(IsSuccess)
+func (c *restApiGrpcClient) UpdateAgreeToMail(ctx context.Context, in *UpdateAgreeToMailRequest, opts ...grpc.CallOption) (*IsSuccessResponse, error) {
+	out := new(IsSuccessResponse)
 	err := c.cc.Invoke(ctx, "/careerhub.userinfo_service.restapi_grpc.RestApiGrpc/UpdateAgreeToMail", in, out, opts...)
 	if err != nil {
 		return nil, err
@@ -87,10 +87,10 @@ func (c *restApiGrpcClient) UpdateAgreeToMail(ctx context.Context, in *UpdateAgr
 // for forward compatibility
 type RestApiGrpcServer interface {
 	FindMatchJob(context.Context, *FindMatchJobRequest) (*FindMatchJobResponse, error)
-	AddCondition(context.Context, *AddConditionRequest) (*IsSuccess, error)
-	UpdateCondition(context.Context, *UpdateConditionRequest) (*IsSuccess, error)
-	DeleteCondition(context.Context, *DeleteConditionRequest) (*IsSuccess, error)
-	UpdateAgreeToMail(context.Context, *UpdateAgreeToMailRequest) (*IsSuccess, error)
+	AddCondition(context.Context, *AddConditionRequest) (*IsSuccessResponse, error)
+	UpdateCondition(context.Context, *UpdateConditionRequest) (*IsSuccessResponse, error)
+	DeleteCondition(context.Context, *DeleteConditionRequest) (*IsSuccessResponse, error)
+	UpdateAgreeToMail(context.Context, *UpdateAgreeToMailRequest) (*IsSuccessResponse, error)
 	mustEmbedUnimplementedRestApiGrpcServer()
 }
 
@@ -101,16 +101,16 @@ type UnimplementedRestApiGrpcServer struct {
 func (UnimplementedRestApiGrpcServer) FindMatchJob(context.Context, *FindMatchJobRequest) (*FindMatchJobResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method FindMatchJob not implemented")
 }
-func (UnimplementedRestApiGrpcServer) AddCondition(context.Context, *AddConditionRequest) (*IsSuccess, error) {
+func (UnimplementedRestApiGrpcServer) AddCondition(context.Context, *AddConditionRequest) (*IsSuccessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AddCondition not implemented")
 }
-func (UnimplementedRestApiGrpcServer) UpdateCondition(context.Context, *UpdateConditionRequest) (*IsSuccess, error) {
+func (UnimplementedRestApiGrpcServer) UpdateCondition(context.Context, *UpdateConditionRequest) (*IsSuccessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateCondition not implemented")
 }
-func (UnimplementedRestApiGrpcServer) DeleteCondition(context.Context, *DeleteConditionRequest) (*IsSuccess, error) {
+func (UnimplementedRestApiGrpcServer) DeleteCondition(context.Context, *DeleteConditionRequest) (*IsSuccessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteCondition not implemented")
 }
-func (UnimplementedRestApiGrpcServer) UpdateAgreeToMail(context.Context, *UpdateAgreeToMailRequest) (*IsSuccess, error) {
+func (UnimplementedRestApiGrpcServer) UpdateAgreeToMail(context.Context, *UpdateAgreeToMailRequest) (*IsSuccessResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateAgreeToMail not implemented")
 }
 func (UnimplementedRestApiGrpcServer) mustEmbedUnimplementedRestApiGrpcServer() {}

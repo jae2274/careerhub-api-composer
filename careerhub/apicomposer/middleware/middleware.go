@@ -7,6 +7,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
+	"github.com/jae2274/goutils/llog"
 )
 
 type claimsKey string
@@ -20,11 +21,14 @@ func SetClaimsMW(jr *jwtresolver.JwtResolver) mux.MiddlewareFunc {
 			if tokenString != "" {
 				claims, err := jr.ParseToken(tokenString)
 				if err != nil {
+					llog.LogErr(r.Context(), err)
 					w.WriteHeader(http.StatusUnauthorized)
+					return
 				}
 
 				if err := jr.Validate(claims); err != nil {
 					w.WriteHeader(http.StatusUnauthorized)
+					return
 				}
 
 				ctx := context.WithValue(r.Context(), claimsKeyStr, claims)

@@ -42,7 +42,7 @@ restart: stop start
 
 proto:
 	@protoc careerhub/apicomposer/posting/restapi_grpc/*.proto  --go_out=. --go-grpc_out=. --go-grpc_opt=paths=source_relative  --go_opt=paths=source_relative  --proto_path=.
-	@protoc careerhub/apicomposer/userinfo/restapi_grpc/*.proto  --go_out=. --go-grpc_out=. --go-grpc_opt=paths=source_relative  --go_opt=paths=source_relative  --proto_path=.
+	@protoc careerhub/apicomposer/userinfo/restapi_grpc/*.proto  --go_out=. --go-grpc_out=. --go-grpc_opt=paths=source_relative  --go_opt=paths=source_relative  --proto_path=. --experimental_allow_proto3_optional
 
 ## test: runs all tests
 test:	

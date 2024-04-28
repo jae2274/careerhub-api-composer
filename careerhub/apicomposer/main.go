@@ -9,8 +9,12 @@ import (
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/controller"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
+	userinfoGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
 	"github.com/jae2274/goutils/llog"
 	"github.com/jae2274/goutils/mw"
@@ -55,19 +59,30 @@ func main() {
 
 	conn, err := grpc.NewClient(envVars.PostingGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	checkErr(mainCtx, err)
+	postingClient := postingGrpc.NewRestApiGrpcClient(conn)
 
-	postingClient := restapi_grpc.NewRestApiGrpcClient(conn)
+	conn, err = grpc.NewClient(envVars.UserinfoGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	checkErr(mainCtx, err)
+	userinfoClient := userinfoGrpc.NewRestApiGrpcClient(conn)
 
+	jr := jwtresolver.NewJwtResolver(envVars.SecretKey)
+
+	//rootRouter 설정
 	rootRouter := mux.NewRouter().PathPrefix(envVars.RootPath).Subrouter()
 
-	rootRouter.Use(
-		httpmw.SetTraceIdMW())
-	ctrler := controller.NewJobPostingController(
-		posting.NewPostingService(postingClient),
-		rootRouter,
-	)
+	rootRouter.Use(httpmw.SetTraceIdMW(), middleware.SetClaimsMW(jr))
 
-	ctrler.RegisterRoutes(rootRouter)
+	controller.NewJobPostingController(
+		posting.NewPostingService(postingClient),
+	).RegisterRoutes(rootRouter)
+
+	//userinfoRouter 설정
+	userinfoRouter := rootRouter.NewRoute().Subrouter()
+	userinfoRouter.Use(middleware.CheckJustLoggedIn)
+
+	controller.NewUserinfoController(
+		userinfo.NewUserinfoService(userinfoClient),
+	).RegisterRoutes(userinfoRouter)
 
 	var allowOrigins []string
 	if envVars.AccessControlAllowOrigin != nil {

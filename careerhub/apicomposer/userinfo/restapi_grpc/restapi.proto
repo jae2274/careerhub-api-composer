@@ -6,10 +6,10 @@ option go_package = "careerhub/userinfo_service/restapi_grpc";
 
 service RestApiGrpc{
     rpc FindMatchJob(FindMatchJobRequest)   returns (FindMatchJobResponse);
-    rpc AddCondition(AddConditionRequest)   returns (IsSuccess);
-    rpc UpdateCondition(UpdateConditionRequest)   returns (IsSuccess);
-    rpc DeleteCondition(DeleteConditionRequest)   returns (IsSuccess);
-    rpc UpdateAgreeToMail(UpdateAgreeToMailRequest)   returns (IsSuccess);
+    rpc AddCondition(AddConditionRequest)   returns (IsSuccessResponse);
+    rpc UpdateCondition(UpdateConditionRequest)   returns (IsSuccessResponse);
+    rpc DeleteCondition(DeleteConditionRequest)   returns (IsSuccessResponse);
+    rpc UpdateAgreeToMail(UpdateAgreeToMailRequest)   returns (IsSuccessResponse);
 }
 
 message FindMatchJobRequest{
@@ -59,8 +59,8 @@ message AddConditionReq{
     Query query = 3;
 }
 
-message IsSuccess{
-    bool value = 1;
+message IsSuccessResponse{
+    bool IsSuccess = 1;
 }
 
 message UpdateConditionRequest{

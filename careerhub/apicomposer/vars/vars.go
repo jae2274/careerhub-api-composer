@@ -8,6 +8,7 @@ import (
 
 type Vars struct {
 	PostingGrpcEndpoint      string
+	UserinfoGrpcEndpoint     string
 	RootPath                 string
 	SecretKey                string
 	AccessControlAllowOrigin *string
@@ -27,8 +28,12 @@ func (e *ErrNotExistedVar) Error() string {
 }
 
 func Variables() (*Vars, error) {
-
 	postingGrpcEndpoint, err := getFromEnv("POSTING_GRPC_ENDPOINT")
+	if err != nil {
+		return nil, err
+	}
+
+	userinfoGrpcEndpoint, err := getFromEnv("USERINFO_GRPC_ENDPOINT")
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +57,7 @@ func Variables() (*Vars, error) {
 
 	return &Vars{
 		PostingGrpcEndpoint:      postingGrpcEndpoint,
+		UserinfoGrpcEndpoint:     userinfoGrpcEndpoint,
 		RootPath:                 os.Getenv("ROOT_PATH"),
 		SecretKey:                secretKey,
 		ApiPort:                  int(apiPortInt),

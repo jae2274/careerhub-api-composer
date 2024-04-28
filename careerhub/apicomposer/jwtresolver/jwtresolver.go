@@ -35,6 +35,8 @@ func NewJwtResolver(secretKey string) *JwtResolver {
 }
 
 func (j *JwtResolver) ParseToken(tokenString string) (*CustomClaims, error) {
+
+	tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
 	jwt, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return j.secretKey, nil
 	})
