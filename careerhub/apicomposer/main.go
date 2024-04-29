@@ -77,7 +77,7 @@ func main() {
 	).RegisterRoutes(rootRouter)
 
 	//userinfoRouter 설정
-	userinfoRouter := rootRouter.NewRoute().Subrouter()
+	userinfoRouter := rootRouter.PathPrefix("/my").Subrouter()
 	userinfoRouter.Use(middleware.CheckJustLoggedIn)
 
 	controller.NewUserinfoController(

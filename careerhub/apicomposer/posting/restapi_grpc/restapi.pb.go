@@ -811,6 +811,7 @@ type SkillRes struct {
 	SkillNames  []string `protobuf:"bytes,2,rep,name=skillNames,proto3" json:"skillNames,omitempty"`
 }
 
+
 func (x *SkillRes) Reset() {
 	*x = SkillRes{}
 	if protoimpl.UnsafeEnabled {

@@ -8,7 +8,6 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/httputils"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"github.com/jae2274/goutils/llog"
 )
 
@@ -63,7 +62,7 @@ func (c *UserinfoController) AddCondition(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	var req restapi_grpc.AddConditionReq
+	var req userinfo.AddConditionRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if httputils.IsError(ctx, w, err) {
 		return
@@ -87,7 +86,7 @@ func (c *UserinfoController) UpdateCondition(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var req restapi_grpc.Condition
+	var req userinfo.UpdateConditionRequest
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if httputils.IsError(ctx, w, err) {
 		return
