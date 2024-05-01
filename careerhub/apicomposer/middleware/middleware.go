@@ -22,7 +22,7 @@ func SetClaimsMW(jr *jwtresolver.JwtResolver) mux.MiddlewareFunc {
 				claims, err := jr.ParseToken(tokenString)
 				if err != nil {
 					llog.LogErr(r.Context(), err)
-					w.WriteHeader(http.StatusUnauthorized)
+					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
 
