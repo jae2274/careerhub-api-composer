@@ -63,7 +63,7 @@ func main() {
 
 	conn, err = grpc.NewClient(envVars.UserinfoGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	checkErr(mainCtx, err)
-	userinfoClient := userinfoGrpc.NewRestApiGrpcClient(conn)
+	matchJobClient := userinfoGrpc.NewMatchJobGrpcClient(conn)
 
 	jr := jwtresolver.NewJwtResolver(envVars.SecretKey)
 
@@ -81,7 +81,7 @@ func main() {
 	userinfoRouter.Use(middleware.CheckJustLoggedIn)
 
 	controller.NewUserinfoController(
-		userinfo.NewUserinfoService(userinfoClient),
+		userinfo.NewMatchJobService(matchJobClient),
 	).RegisterRoutes(userinfoRouter)
 
 	var allowOrigins []string
