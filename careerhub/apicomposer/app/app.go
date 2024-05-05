@@ -63,6 +63,7 @@ func Run(mainCtx context.Context) {
 	conn, err = grpc.NewClient(envVars.UserinfoGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	checkErr(mainCtx, err)
 	matchJobClient := userinfoGrpc.NewMatchJobGrpcClient(conn)
+	scrapJobClient := userinfoGrpc.NewScrapJobGrpcClient(conn)
 
 	jr := jwtresolver.NewJwtResolver(envVars.SecretKey)
 
@@ -81,6 +82,10 @@ func Run(mainCtx context.Context) {
 
 	controller.NewMatchJobController(
 		service.NewMatchJobService(matchJobClient),
+	).RegisterRoutes(userinfoRouter)
+
+	controller.NewScrapJobController(
+		service.NewScrapJobService(scrapJobClient, postingClient),
 	).RegisterRoutes(userinfoRouter)
 
 	var allowOrigins []string

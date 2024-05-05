@@ -108,6 +108,8 @@ func (s *ScrapJobService) RemoveTag(ctx context.Context, in *scrapJobGrpc.Remove
 
 	return isExisted.IsExisted, err
 }
-func (s *ScrapJobService) GetScrapTags(ctx context.Context, in *scrapJobGrpc.GetScrapTagsRequest, opts ...grpc.CallOption) (*scrapJobGrpc.GetScrapTagsResponse, error) {
-	return s.scrapjobClient.GetScrapTags(ctx, in)
+func (s *ScrapJobService) GetScrapTags(ctx context.Context, userId string, opts ...grpc.CallOption) (*scrapJobGrpc.GetScrapTagsResponse, error) {
+	return s.scrapjobClient.GetScrapTags(ctx, &scrapJobGrpc.GetScrapTagsRequest{
+		UserId: userId,
+	})
 }
