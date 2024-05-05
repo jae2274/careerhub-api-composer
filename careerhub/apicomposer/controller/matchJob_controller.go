@@ -16,9 +16,9 @@ type MatchJobController struct {
 	matchJobSvc service.MatchJobService
 }
 
-func NewUserinfoController(userinfoSvc service.MatchJobService) *MatchJobController {
+func NewMatchJobController(matchJobSvc service.MatchJobService) *MatchJobController {
 	return &MatchJobController{
-		matchJobSvc: userinfoSvc,
+		matchJobSvc: matchJobSvc,
 	}
 }
 

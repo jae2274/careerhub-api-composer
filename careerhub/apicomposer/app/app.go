@@ -79,7 +79,7 @@ func Run(mainCtx context.Context) {
 	userinfoRouter := rootRouter.PathPrefix("/my").Subrouter()
 	userinfoRouter.Use(middleware.CheckJustLoggedIn)
 
-	controller.NewUserinfoController(
+	controller.NewMatchJobController(
 		service.NewMatchJobService(matchJobClient),
 	).RegisterRoutes(userinfoRouter)
 
