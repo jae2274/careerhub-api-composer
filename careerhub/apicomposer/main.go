@@ -13,8 +13,8 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
 	userinfoGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/service"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
 	"github.com/jae2274/goutils/llog"
 	"github.com/jae2274/goutils/mw"
@@ -24,8 +24,8 @@ import (
 )
 
 const (
-	app     = "api-composer"
-	service = "careerhub"
+	app         = "api-composer"
+	serviceName = "careerhub"
 
 	ctxKeyTraceID = string(mw.CtxKeyTraceID)
 
@@ -33,7 +33,7 @@ const (
 )
 
 func initLogger(ctx context.Context) error {
-	llog.SetMetadata("service", service)
+	llog.SetMetadata("service", serviceName)
 	llog.SetMetadata("app", app)
 	llog.SetDefaultContextData(ctxKeyTraceID)
 
@@ -81,7 +81,7 @@ func main() {
 	userinfoRouter.Use(middleware.CheckJustLoggedIn)
 
 	controller.NewUserinfoController(
-		userinfo.NewMatchJobService(matchJobClient),
+		service.NewMatchJobService(matchJobClient),
 	).RegisterRoutes(userinfoRouter)
 
 	var allowOrigins []string
