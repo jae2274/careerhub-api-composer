@@ -73,7 +73,7 @@ func Run(mainCtx context.Context) {
 	rootRouter.Use(httpmw.SetTraceIdMW(), middleware.SetClaimsMW(jr))
 
 	controller.NewJobPostingController(
-		posting.NewPostingService(postingClient),
+		posting.NewPostingService(postingClient, scrapJobClient),
 	).RegisterRoutes(rootRouter)
 
 	//userinfoRouter 설정

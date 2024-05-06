@@ -64,29 +64,13 @@ func (s *ScrapJobService) GetScrapJobs(ctx context.Context, userId string, tag *
 	var jobPostings []*dto.JobPostingRes
 	for _, scrapJob := range scrapJobRes.ScrapJobs {
 		if jobPosting, ok := postingMap[scrapJob.Site+scrapJob.PostingId]; ok {
-			jobPostings = append(jobPostings, convertGrpcToJobPostingRes(jobPosting))
+			jobPostings = append(jobPostings, dto.ConvertGrpcToJobPostingRes(jobPosting))
 		}
 	}
 
 	return &dto.JobPostingsResponse{
 		JobPostings: jobPostings,
 	}, nil
-}
-
-func convertGrpcToJobPostingRes(jobPosting *postingGrpc.JobPostingRes) *dto.JobPostingRes {
-	return &dto.JobPostingRes{
-		Site:        jobPosting.Site,
-		PostingId:   jobPosting.PostingId,
-		Title:       jobPosting.Title,
-		CompanyName: jobPosting.CompanyName,
-		Skills:      jobPosting.Skills,
-		Categories:  jobPosting.Categories,
-		ImageUrl:    jobPosting.ImageUrl,
-		Addresses:   jobPosting.Addresses,
-		MinCareer:   jobPosting.MinCareer,
-		MaxCareer:   jobPosting.MaxCareer,
-		IsScrapped:  true,
-	}
 }
 
 func (s *ScrapJobService) AddScrapJob(ctx context.Context, in *scrapJobGrpc.AddScrapJobRequest, opts ...grpc.CallOption) error {

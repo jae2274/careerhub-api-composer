@@ -13,6 +13,7 @@ service ScrapJobGrpc {
     rpc AddTag(AddTagRequest) returns (IsExistedResponse);
     rpc RemoveTag(RemoveTagRequest) returns (IsExistedResponse);
     rpc GetScrapTags(GetScrapTagsRequest) returns (GetScrapTagsResponse);
+    rpc GetScrapJobsById(GetScrapJobsByIdRequest) returns (GetScrapJobsResponse);
 }
 
 message GetScrapJobsRequest {
@@ -66,4 +67,14 @@ message GetScrapTagsResponse {
 
 message IsExistedResponse{
     bool isExisted = 1;
+}
+
+message GetScrapJobsByIdRequest {
+    string userId = 1;
+    repeated JobPostingId jobPostingIds = 3;
+}
+
+message JobPostingId {
+    string site = 1;
+    string postingId = 2;
 }

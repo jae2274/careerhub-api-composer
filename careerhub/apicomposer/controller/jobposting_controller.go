@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	"github.com/jae2274/goutils/llog"
 )
@@ -36,14 +37,19 @@ func (c *JobPostingController) JobPostings(w http.ResponseWriter, r *http.Reques
 	reqCtx := r.Context()
 
 	req, err := posting.ExtractJobPostingsRequest(r, initPage)
-
 	if err != nil {
 		llog.LogErr(reqCtx, err)
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	resp, err := c.postingService.JobPostings(reqCtx, req)
+	var userId *string
+	claims, ok := middleware.GetClaims(r.Context())
+	if ok {
+		userId = &claims.UserId
+	}
+
+	resp, err := c.postingService.JobPostings(reqCtx, userId, req)
 	if err != nil {
 		llog.LogErr(reqCtx, err)
 		http.Error(w, messageInternalServerError, http.StatusInternalServerError)

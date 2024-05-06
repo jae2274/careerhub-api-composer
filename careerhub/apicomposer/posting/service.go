@@ -3,63 +3,113 @@ package posting
 import (
 	"context"
 
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
+	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 type PostingService interface {
-	JobPostings(ctx context.Context, req *JobPostingsRequest) (*restapi_grpc.JobPostingsResponse, error)
-	JobPostingDetail(ctx context.Context, req *restapi_grpc.JobPostingDetailRequest) (*restapi_grpc.JobPostingDetailResponse, error)
-	Categories(ctx context.Context) (*restapi_grpc.CategoriesResponse, error)
-	Skills(ctx context.Context) (*restapi_grpc.SkillsResponse, error)
+	JobPostings(ctx context.Context, userId *string, req *JobPostingsRequest) (*dto.JobPostingsResponse, error)
+	JobPostingDetail(ctx context.Context, req *postingGrpc.JobPostingDetailRequest) (*postingGrpc.JobPostingDetailResponse, error)
+	Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error)
+	Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error)
 }
 
 type PostingServiceImpl struct {
-	postingClient restapi_grpc.RestApiGrpcClient
+	postingClient postingGrpc.RestApiGrpcClient
+	scrapClient   scrapGrpc.ScrapJobGrpcClient
 }
 
-func NewPostingService(postingClient restapi_grpc.RestApiGrpcClient) PostingService {
+func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapClient scrapGrpc.ScrapJobGrpcClient) PostingService {
 	return &PostingServiceImpl{
 		postingClient: postingClient,
+		scrapClient:   scrapClient,
 	}
 }
 
-func (s *PostingServiceImpl) JobPostings(ctx context.Context, req *JobPostingsRequest) (*restapi_grpc.JobPostingsResponse, error) {
-	pbCategories := make([]*restapi_grpc.CategoryQueryReq, len(req.QueryReq.Categories))
+func (s *PostingServiceImpl) JobPostings(ctx context.Context, userId *string, req *JobPostingsRequest) (*dto.JobPostingsResponse, error) {
+	pbCategories := make([]*postingGrpc.CategoryQueryReq, len(req.QueryReq.Categories))
 	for i, category := range req.QueryReq.Categories {
-		pbCategories[i] = &restapi_grpc.CategoryQueryReq{
+		pbCategories[i] = &postingGrpc.CategoryQueryReq{
 			Site:         category.Site,
 			CategoryName: category.CategoryName,
 		}
 	}
 
-	pbSkillNames := make([]*restapi_grpc.SkillQueryReq, len(req.QueryReq.SkillNames))
+	pbSkillNames := make([]*postingGrpc.SkillQueryReq, len(req.QueryReq.SkillNames))
 	for i, skillNames := range req.QueryReq.SkillNames {
-		pbSkillNames[i] = &restapi_grpc.SkillQueryReq{
+		pbSkillNames[i] = &postingGrpc.SkillQueryReq{
 			Or: skillNames,
 		}
 	}
 
-	return s.postingClient.JobPostings(ctx, &restapi_grpc.JobPostingsRequest{
+	jobPostings, err := s.postingClient.JobPostings(ctx, &postingGrpc.JobPostingsRequest{
 		Page: req.Page,
 		Size: req.Size,
-		QueryReq: &restapi_grpc.QueryReq{
+		QueryReq: &postingGrpc.QueryReq{
 			Categories: pbCategories,
 			SkillNames: pbSkillNames,
 			MinCareer:  req.QueryReq.MinCareer,
 			MaxCareer:  req.QueryReq.MaxCareer,
 		},
 	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if userId != nil {
+		err = s.attachIsScrapped(ctx, *userId, dto.ConvertGrpcToJobPostingResList(jobPostings.JobPostings))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return &dto.JobPostingsResponse{
+		JobPostings: dto.ConvertGrpcToJobPostingResList(jobPostings.JobPostings),
+	}, nil
 }
 
-func (s *PostingServiceImpl) JobPostingDetail(ctx context.Context, req *restapi_grpc.JobPostingDetailRequest) (*restapi_grpc.JobPostingDetailResponse, error) {
+func (c *PostingServiceImpl) attachIsScrapped(ctx context.Context, userId string, jobPostings []*dto.JobPostingRes) error {
+	jobPostingIds := make([]*scrapGrpc.JobPostingId, len(jobPostings))
+	for i, jobPosting := range jobPostings {
+		jobPostingIds[i] = &scrapGrpc.JobPostingId{
+			Site:      jobPosting.Site,
+			PostingId: jobPosting.PostingId,
+		}
+	}
+
+	scrapJobRes, err := c.scrapClient.GetScrapJobsById(ctx, &scrapGrpc.GetScrapJobsByIdRequest{
+		UserId:        userId,
+		JobPostingIds: jobPostingIds,
+	})
+	if err != nil {
+		return err
+	}
+
+	scrapJobMap := make(map[string]bool)
+	for _, scrapJob := range scrapJobRes.ScrapJobs {
+		scrapJobMap[scrapJob.Site+scrapJob.PostingId] = true
+	}
+
+	for _, jobPosting := range jobPostings {
+		if _, ok := scrapJobMap[jobPosting.Site+jobPosting.PostingId]; ok {
+			jobPosting.IsScrapped = true
+		}
+	}
+
+	return nil
+}
+
+func (s *PostingServiceImpl) JobPostingDetail(ctx context.Context, req *postingGrpc.JobPostingDetailRequest) (*postingGrpc.JobPostingDetailResponse, error) {
 	return s.postingClient.JobPostingDetail(ctx, req)
 }
 
-func (s *PostingServiceImpl) Categories(ctx context.Context) (*restapi_grpc.CategoriesResponse, error) {
+func (s *PostingServiceImpl) Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error) {
 	return s.postingClient.Categories(ctx, &emptypb.Empty{})
 }
 
-func (s *PostingServiceImpl) Skills(ctx context.Context) (*restapi_grpc.SkillsResponse, error) {
+func (s *PostingServiceImpl) Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error) {
 	return s.postingClient.Skills(ctx, &emptypb.Empty{})
 }
