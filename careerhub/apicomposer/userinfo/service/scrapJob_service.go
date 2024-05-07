@@ -56,17 +56,8 @@ func (s *ScrapJobService) GetScrapJobs(ctx context.Context, userId string, tag *
 		return nil, err
 	}
 
-	postingMap := make(map[string]*postingGrpc.JobPostingRes)
-	for _, posting := range postings.JobPostings {
-		postingMap[posting.Site+posting.PostingId] = posting
-	}
-
-	var jobPostings []*dto.JobPostingRes
-	for _, scrapJob := range scrapJobRes.ScrapJobs {
-		if jobPosting, ok := postingMap[scrapJob.Site+scrapJob.PostingId]; ok {
-			jobPostings = append(jobPostings, dto.ConvertGrpcToJobPostingRes(jobPosting))
-		}
-	}
+	jobPostings := dto.ConvertGrpcToJobPostingResList(postings.JobPostings)
+	dto.AttachScrapped(jobPostings, scrapJobRes.ScrapJobs)
 
 	return &dto.JobPostingsResponse{
 		JobPostings: jobPostings,

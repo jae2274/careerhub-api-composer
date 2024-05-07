@@ -59,15 +59,16 @@ func (s *PostingServiceImpl) JobPostings(ctx context.Context, userId *string, re
 		return nil, err
 	}
 
+	jobPostingResList := dto.ConvertGrpcToJobPostingResList(jobPostings.JobPostings)
 	if userId != nil {
-		err = s.attachIsScrapped(ctx, *userId, dto.ConvertGrpcToJobPostingResList(jobPostings.JobPostings))
+		err = s.attachIsScrapped(ctx, *userId, jobPostingResList)
 		if err != nil {
 			return nil, err
 		}
 	}
 
 	return &dto.JobPostingsResponse{
-		JobPostings: dto.ConvertGrpcToJobPostingResList(jobPostings.JobPostings),
+		JobPostings: jobPostingResList,
 	}, nil
 }
 
@@ -88,16 +89,7 @@ func (c *PostingServiceImpl) attachIsScrapped(ctx context.Context, userId string
 		return err
 	}
 
-	scrapJobMap := make(map[string]bool)
-	for _, scrapJob := range scrapJobRes.ScrapJobs {
-		scrapJobMap[scrapJob.Site+scrapJob.PostingId] = true
-	}
-
-	for _, jobPosting := range jobPostings {
-		if _, ok := scrapJobMap[jobPosting.Site+jobPosting.PostingId]; ok {
-			jobPosting.IsScrapped = true
-		}
-	}
+	dto.AttachScrapped(jobPostings, scrapJobRes.ScrapJobs)
 
 	return nil
 }
