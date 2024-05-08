@@ -73,7 +73,13 @@ func (c *JobPostingController) JobPostingDetail(w http.ResponseWriter, r *http.R
 		return
 	}
 
-	resp, err := c.postingService.JobPostingDetail(reqCtx, req)
+	var userId *string
+	claims, isExisted := middleware.GetClaims(r.Context())
+	if isExisted {
+		userId = &claims.UserId
+	}
+
+	resp, err := c.postingService.JobPostingDetail(reqCtx, userId, req)
 
 	if err != nil {
 		llog.LogErr(reqCtx, err)

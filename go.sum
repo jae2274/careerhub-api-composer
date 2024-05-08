@@ -23,6 +23,12 @@ github.com/jae2274/goutils v1.0.27 h1:LRTxuJhFZxcZblDFmHdJ15Qn2ySniKObzcVhpawL37
 github.com/jae2274/goutils v1.0.27/go.mod h1:efCHdW6AbXhLoDdd5acar0+ql8mRrW5108kvnBjDmfs=
 github.com/jae2274/goutils v1.0.28 h1:g8vrs2b9AjiSlPNN2ElZmPitJL1IHCRLiufpES4mmlk=
 github.com/jae2274/goutils v1.0.28/go.mod h1:efCHdW6AbXhLoDdd5acar0+ql8mRrW5108kvnBjDmfs=
+github.com/jae2274/goutils v1.0.30 h1:EW73mWRHG+ERDHi6SBTV+kdN+lPJdqn8BL31NpI3hiM=
+github.com/jae2274/goutils v1.0.30/go.mod h1:efCHdW6AbXhLoDdd5acar0+ql8mRrW5108kvnBjDmfs=
+github.com/jae2274/goutils v1.0.31 h1:bIABIONFbeV/U1nWfl7Yq5pOtD1Un1HEeLtJgxy6IRM=
+github.com/jae2274/goutils v1.0.31/go.mod h1:efCHdW6AbXhLoDdd5acar0+ql8mRrW5108kvnBjDmfs=
+github.com/jae2274/goutils v1.0.32 h1:DqfeXkiJ1VRwwMQesgZIrjGirBoCnMrIBeORvrdxnZ0=
+github.com/jae2274/goutils v1.0.32/go.mod h1:efCHdW6AbXhLoDdd5acar0+ql8mRrW5108kvnBjDmfs=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/stretchr/testify v1.9.0 h1:HtqpIVDClZ4nwg75+f6Lvsy/wHu+3BoSGCbBAcpTsTg=
