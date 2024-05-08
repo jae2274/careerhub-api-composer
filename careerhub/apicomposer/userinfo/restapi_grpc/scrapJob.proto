@@ -14,6 +14,7 @@ service ScrapJobGrpc {
     rpc RemoveTag(RemoveTagRequest) returns (IsExistedResponse);
     rpc GetScrapTags(GetScrapTagsRequest) returns (GetScrapTagsResponse);
     rpc GetScrapJobsById(GetScrapJobsByIdRequest) returns (GetScrapJobsResponse);
+    rpc GetUntaggedScrapJobs(GetUntaggedScrapJobsRequest) returns (GetScrapJobsResponse);
 }
 
 message GetScrapJobsRequest {
@@ -77,4 +78,8 @@ message GetScrapJobsByIdRequest {
 message JobPostingId {
     string site = 1;
     string postingId = 2;
+}
+
+message GetUntaggedScrapJobsRequest {
+    string userId = 1;
 }

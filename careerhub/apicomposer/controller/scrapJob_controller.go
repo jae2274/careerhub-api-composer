@@ -26,6 +26,7 @@ func (c *ScrapJobController) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/scrap-job", c.GetScrapJobs).Methods("GET")
 	router.HandleFunc("/scrap-job", c.AddScrapJob).Methods("POST")
 	router.HandleFunc("/scrap-job", c.RemoveScrapJob).Methods("DELETE")
+	router.HandleFunc("/scrap-job/untagged", c.GetUntaggedScrapJobs).Methods("GET")
 	router.HandleFunc("/scrap-job/tags", c.GetScrapTags).Methods("GET")
 	router.HandleFunc("/scrap-job/tags", c.AddTag).Methods("POST")
 	router.HandleFunc("/scrap-job/tags", c.RemoveTag).Methods("DELETE")
@@ -170,4 +171,22 @@ func (c *ScrapJobController) RemoveTag(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
+}
+
+func (c *ScrapJobController) GetUntaggedScrapJobs(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	claims, ok := middleware.GetClaims(ctx)
+	if httputils.IsNotLoggedIn(ctx, w, ok) {
+		return
+	}
+
+	res, err := c.scrapJobSvc.GetUntaggedScrapJobs(ctx, claims.UserId)
+	if httputils.IsError(ctx, w, err) {
+		return
+	}
+
+	err = json.NewEncoder(w).Encode(res)
+	if httputils.IsError(ctx, w, err) {
+		return
+	}
 }

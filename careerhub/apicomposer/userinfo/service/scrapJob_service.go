@@ -40,8 +40,12 @@ func (s *ScrapJobService) GetScrapJobs(ctx context.Context, userId string, tag *
 		}, nil
 	}
 
-	postingIds := make([]*postingGrpc.JobPostingIdReq, len(scrapJobRes.ScrapJobs))
-	for i, scrapJob := range scrapJobRes.ScrapJobs {
+	return s.getJobPostings(ctx, scrapJobRes.ScrapJobs)
+}
+
+func (s *ScrapJobService) getJobPostings(ctx context.Context, scrapJobs []*scrapJobGrpc.ScrapJob) (*dto.JobPostingsResponse, error) {
+	postingIds := make([]*postingGrpc.JobPostingIdReq, len(scrapJobs))
+	for i, scrapJob := range scrapJobs {
 		postingIds[i] = &postingGrpc.JobPostingIdReq{
 			Site:      scrapJob.Site,
 			PostingId: scrapJob.PostingId,
@@ -57,7 +61,7 @@ func (s *ScrapJobService) GetScrapJobs(ctx context.Context, userId string, tag *
 	}
 
 	jobPostings := dto.ConvertGrpcToJobPostingResList(postings.JobPostings)
-	dto.AttachScrapped(jobPostings, scrapJobRes.ScrapJobs)
+	dto.AttachScrapped(jobPostings, scrapJobs)
 
 	return &dto.JobPostingsResponse{
 		JobPostings: jobPostings,
@@ -87,4 +91,22 @@ func (s *ScrapJobService) GetScrapTags(ctx context.Context, userId string, opts 
 	return s.scrapjobClient.GetScrapTags(ctx, &scrapJobGrpc.GetScrapTagsRequest{
 		UserId: userId,
 	})
+}
+
+func (s *ScrapJobService) GetUntaggedScrapJobs(ctx context.Context, userId string) (*dto.JobPostingsResponse, error) {
+	scrapJobRes, err := s.scrapjobClient.GetUntaggedScrapJobs(ctx, &scrapJobGrpc.GetUntaggedScrapJobsRequest{
+		UserId: userId,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(scrapJobRes.ScrapJobs) == 0 {
+		return &dto.JobPostingsResponse{
+			JobPostings: []*dto.JobPostingRes{},
+		}, nil
+	}
+
+	return s.getJobPostings(ctx, scrapJobRes.ScrapJobs)
 }

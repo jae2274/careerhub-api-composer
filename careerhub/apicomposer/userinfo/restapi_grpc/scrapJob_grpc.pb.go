@@ -30,6 +30,7 @@ type ScrapJobGrpcClient interface {
 	RemoveTag(ctx context.Context, in *RemoveTagRequest, opts ...grpc.CallOption) (*IsExistedResponse, error)
 	GetScrapTags(ctx context.Context, in *GetScrapTagsRequest, opts ...grpc.CallOption) (*GetScrapTagsResponse, error)
 	GetScrapJobsById(ctx context.Context, in *GetScrapJobsByIdRequest, opts ...grpc.CallOption) (*GetScrapJobsResponse, error)
+	GetUntaggedScrapJobs(ctx context.Context, in *GetUntaggedScrapJobsRequest, opts ...grpc.CallOption) (*GetScrapJobsResponse, error)
 }
 
 type scrapJobGrpcClient struct {
@@ -103,6 +104,15 @@ func (c *scrapJobGrpcClient) GetScrapJobsById(ctx context.Context, in *GetScrapJ
 	return out, nil
 }
 
+func (c *scrapJobGrpcClient) GetUntaggedScrapJobs(ctx context.Context, in *GetUntaggedScrapJobsRequest, opts ...grpc.CallOption) (*GetScrapJobsResponse, error) {
+	out := new(GetScrapJobsResponse)
+	err := c.cc.Invoke(ctx, "/careerhub.userinfo_service.restapi_grpc.ScrapJobGrpc/GetUntaggedScrapJobs", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ScrapJobGrpcServer is the server API for ScrapJobGrpc service.
 // All implementations must embed UnimplementedScrapJobGrpcServer
 // for forward compatibility
@@ -114,6 +124,7 @@ type ScrapJobGrpcServer interface {
 	RemoveTag(context.Context, *RemoveTagRequest) (*IsExistedResponse, error)
 	GetScrapTags(context.Context, *GetScrapTagsRequest) (*GetScrapTagsResponse, error)
 	GetScrapJobsById(context.Context, *GetScrapJobsByIdRequest) (*GetScrapJobsResponse, error)
+	GetUntaggedScrapJobs(context.Context, *GetUntaggedScrapJobsRequest) (*GetScrapJobsResponse, error)
 	mustEmbedUnimplementedScrapJobGrpcServer()
 }
 
@@ -141,6 +152,9 @@ func (UnimplementedScrapJobGrpcServer) GetScrapTags(context.Context, *GetScrapTa
 }
 func (UnimplementedScrapJobGrpcServer) GetScrapJobsById(context.Context, *GetScrapJobsByIdRequest) (*GetScrapJobsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetScrapJobsById not implemented")
+}
+func (UnimplementedScrapJobGrpcServer) GetUntaggedScrapJobs(context.Context, *GetUntaggedScrapJobsRequest) (*GetScrapJobsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetUntaggedScrapJobs not implemented")
 }
 func (UnimplementedScrapJobGrpcServer) mustEmbedUnimplementedScrapJobGrpcServer() {}
 
@@ -281,6 +295,24 @@ func _ScrapJobGrpc_GetScrapJobsById_Handler(srv interface{}, ctx context.Context
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ScrapJobGrpc_GetUntaggedScrapJobs_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetUntaggedScrapJobsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ScrapJobGrpcServer).GetUntaggedScrapJobs(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/careerhub.userinfo_service.restapi_grpc.ScrapJobGrpc/GetUntaggedScrapJobs",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ScrapJobGrpcServer).GetUntaggedScrapJobs(ctx, req.(*GetUntaggedScrapJobsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ScrapJobGrpc_ServiceDesc is the grpc.ServiceDesc for ScrapJobGrpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -315,6 +347,10 @@ var ScrapJobGrpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetScrapJobsById",
 			Handler:    _ScrapJobGrpc_GetScrapJobsById_Handler,
+		},
+		{
+			MethodName: "GetUntaggedScrapJobs",
+			Handler:    _ScrapJobGrpc_GetUntaggedScrapJobs_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
