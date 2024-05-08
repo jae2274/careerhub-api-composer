@@ -76,6 +76,10 @@ func (s *PostingServiceImpl) JobPostings(ctx context.Context, userId *string, re
 }
 
 func (c *PostingServiceImpl) attachIsScrapped(ctx context.Context, userId string, jobPostings []*dto.JobPostingRes) error {
+	if len(jobPostings) == 0 {
+		return nil
+	}
+
 	jobPostingIds := make([]*scrapGrpc.JobPostingId, len(jobPostings))
 	for i, jobPosting := range jobPostings {
 		jobPostingIds[i] = &scrapGrpc.JobPostingId{
