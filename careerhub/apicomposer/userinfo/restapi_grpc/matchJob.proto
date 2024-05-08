@@ -4,7 +4,7 @@ package careerhub.userinfo_service.restapi_grpc;
 option go_package = "careerhub/userinfo_service/restapi_grpc";
 
 
-service RestApiGrpc{
+service MatchJobGrpc{
     rpc FindMatchJob(FindMatchJobRequest)   returns (FindMatchJobResponse);
     rpc AddCondition(AddConditionRequest)   returns (IsSuccessResponse);
     rpc UpdateCondition(UpdateConditionRequest)   returns (IsSuccessResponse);

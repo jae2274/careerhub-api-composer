@@ -9,6 +9,7 @@ service RestApiGrpc{
     rpc JobPostingDetail(JobPostingDetailRequest) returns (JobPostingDetailResponse);
     rpc Categories(google.protobuf.Empty) returns (CategoriesResponse);
     rpc Skills(google.protobuf.Empty) returns (SkillsResponse);
+    rpc JobPostingsById(JobPostingsByIdRequest) returns (JobPostingsResponse);
 }
 
 message JobPostingsRequest {
@@ -48,6 +49,7 @@ message JobPostingRes {
   repeated string addresses = 8;
   optional int32 minCareer = 9;
   optional int32 maxCareer = 10;
+  string Status = 11;
 }
 
 message JobPostingDetailRequest {
@@ -88,4 +90,13 @@ message SkillsResponse {
 message SkillRes {
     string defaultName = 1;
     repeated string skillNames = 2;
+}
+
+message JobPostingsByIdRequest {
+  repeated JobPostingIdReq jobPostingIds = 1;
+}
+
+message JobPostingIdReq {
+  string site = 1;
+  string postingId = 2;
 }

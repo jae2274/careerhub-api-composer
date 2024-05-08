@@ -8,20 +8,21 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/httputils"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/service"
 	"github.com/jae2274/goutils/llog"
 )
 
-type UserinfoController struct {
-	userinfoSvc userinfo.UserinfoService
+type MatchJobController struct {
+	matchJobSvc service.MatchJobService
 }
 
-func NewUserinfoController(userinfoSvc userinfo.UserinfoService) *UserinfoController {
-	return &UserinfoController{
-		userinfoSvc: userinfoSvc,
+func NewMatchJobController(matchJobSvc service.MatchJobService) *MatchJobController {
+	return &MatchJobController{
+		matchJobSvc: matchJobSvc,
 	}
 }
 
-func (c *UserinfoController) RegisterRoutes(router *mux.Router) {
+func (c *MatchJobController) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/match-job", c.FindMatchJob).Methods("GET")
 	router.HandleFunc("/match-job/condition", c.AddCondition).Methods("POST")
 	router.HandleFunc("/match-job/condition", c.UpdateCondition).Methods("PUT")
@@ -29,14 +30,14 @@ func (c *UserinfoController) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/match-job/agree-to-mail", c.UpdateAgreeToMail).Methods("PUT")
 }
 
-func (c *UserinfoController) FindMatchJob(w http.ResponseWriter, r *http.Request) {
+func (c *MatchJobController) FindMatchJob(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.GetClaims(ctx)
 	if httputils.IsNotLoggedIn(ctx, w, ok) {
 		return
 	}
 
-	matchJob, err := c.userinfoSvc.FindMatchJob(ctx, claims.UserId)
+	matchJob, err := c.matchJobSvc.FindMatchJob(ctx, claims.UserId)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}
@@ -55,7 +56,7 @@ func (c *UserinfoController) FindMatchJob(w http.ResponseWriter, r *http.Request
 
 const limitCount = 2
 
-func (c *UserinfoController) AddCondition(w http.ResponseWriter, r *http.Request) {
+func (c *MatchJobController) AddCondition(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.GetClaims(ctx)
 	if httputils.IsNotLoggedIn(ctx, w, ok) {
@@ -68,7 +69,7 @@ func (c *UserinfoController) AddCondition(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	isSuccess, err := c.userinfoSvc.AddCondition(ctx, claims.UserId, limitCount, &req)
+	isSuccess, err := c.matchJobSvc.AddCondition(ctx, claims.UserId, limitCount, &req)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}
@@ -79,7 +80,7 @@ func (c *UserinfoController) AddCondition(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (c *UserinfoController) UpdateCondition(w http.ResponseWriter, r *http.Request) {
+func (c *MatchJobController) UpdateCondition(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.GetClaims(ctx)
 	if httputils.IsNotLoggedIn(ctx, w, ok) {
@@ -92,7 +93,7 @@ func (c *UserinfoController) UpdateCondition(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	isSuccess, err := c.userinfoSvc.UpdateCondition(ctx, claims.UserId, &req)
+	isSuccess, err := c.matchJobSvc.UpdateCondition(ctx, claims.UserId, &req)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}
@@ -103,7 +104,7 @@ func (c *UserinfoController) UpdateCondition(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (c *UserinfoController) DeleteCondition(w http.ResponseWriter, r *http.Request) {
+func (c *MatchJobController) DeleteCondition(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.GetClaims(ctx)
 	if httputils.IsNotLoggedIn(ctx, w, ok) {
@@ -118,7 +119,7 @@ func (c *UserinfoController) DeleteCondition(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	isSuccess, err := c.userinfoSvc.DeleteCondition(ctx, claims.UserId, conditionIdStruct.ConditionId)
+	isSuccess, err := c.matchJobSvc.DeleteCondition(ctx, claims.UserId, conditionIdStruct.ConditionId)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}
@@ -129,7 +130,7 @@ func (c *UserinfoController) DeleteCondition(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-func (c *UserinfoController) UpdateAgreeToMail(w http.ResponseWriter, r *http.Request) {
+func (c *MatchJobController) UpdateAgreeToMail(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	claims, ok := middleware.GetClaims(ctx)
 	if httputils.IsNotLoggedIn(ctx, w, ok) {
@@ -144,7 +145,7 @@ func (c *UserinfoController) UpdateAgreeToMail(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	isSuccess, err := c.userinfoSvc.UpdateAgreeToMail(ctx, claims.UserId, agreeToMailStruct.AgreeToMail)
+	isSuccess, err := c.matchJobSvc.UpdateAgreeToMail(ctx, claims.UserId, agreeToMailStruct.AgreeToMail)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}
