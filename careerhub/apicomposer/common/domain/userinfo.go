@@ -1,6 +1,9 @@
 package domain
 
-import "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
+import (
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/query"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
+)
 
 type ScrapJob struct {
 	Site      string   `json:"site"`
@@ -22,4 +25,15 @@ func ConvertGrpcToScrapJobs(scrapJobs []*restapi_grpc.ScrapJob) []*ScrapJob {
 		result[i] = ConvertGrpcToScrapJob(scrapJob)
 	}
 	return result
+}
+
+type MatchJob struct {
+	Conditions  []*Condition `json:"conditions"`
+	AgreeToMail bool         `json:"agreeToMail"`
+}
+
+type Condition struct {
+	ConditionId   string       `json:"conditionId"`
+	ConditionName string       `json:"conditionName"`
+	Query         *query.Query `json:"query"`
 }

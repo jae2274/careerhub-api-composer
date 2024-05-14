@@ -3,12 +3,13 @@ package userinfo
 import (
 	"context"
 
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/query"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 )
 
 type MatchJobService interface {
-	FindMatchJob(ctx context.Context, userId string) (*GetMatchJobResponse, error)
+	FindMatchJob(ctx context.Context, userId string) (*domain.MatchJob, error)
 	AddCondition(ctx context.Context, userId string, limitCount uint32, req *AddConditionRequest) (*IsSuccessResponse, error)
 	UpdateCondition(ctx context.Context, userId string, req *UpdateConditionRequest) (*IsSuccessResponse, error)
 	DeleteCondition(ctx context.Context, userId string, conditionId string) (*IsSuccessResponse, error)
@@ -25,7 +26,7 @@ func NewMatchJobService(matchJobClient restapi_grpc.MatchJobGrpcClient) MatchJob
 	}
 }
 
-func (s *MatchJobServiceImpl) FindMatchJob(ctx context.Context, userId string) (*GetMatchJobResponse, error) {
+func (s *MatchJobServiceImpl) FindMatchJob(ctx context.Context, userId string) (*domain.MatchJob, error) {
 	res, err := s.matchJobClient.FindMatchJob(ctx, &restapi_grpc.FindMatchJobRequest{
 		UserId: userId,
 	})
@@ -34,14 +35,14 @@ func (s *MatchJobServiceImpl) FindMatchJob(ctx context.Context, userId string) (
 		return nil, err
 	}
 
-	return &GetMatchJobResponse{
+	return &domain.MatchJob{
 		AgreeToMail: res.AgreeToMail,
 		Conditions:  convertToConditions(res),
 	}, nil
 }
 
-func convertToConditions(res *restapi_grpc.FindMatchJobResponse) []*Condition {
-	conditions := make([]*Condition, len(res.Conditions))
+func convertToConditions(res *restapi_grpc.FindMatchJobResponse) []*domain.Condition {
+	conditions := make([]*domain.Condition, len(res.Conditions))
 	for i, condition := range res.Conditions {
 		skills := make([][]string, len(condition.Query.SkillNames))
 		for j, skill := range condition.Query.SkillNames {
@@ -56,7 +57,7 @@ func convertToConditions(res *restapi_grpc.FindMatchJobResponse) []*Condition {
 			}
 		}
 
-		conditions[i] = &Condition{
+		conditions[i] = &domain.Condition{
 			ConditionId:   condition.ConditionId,
 			ConditionName: condition.ConditionName,
 			Query: &query.Query{
