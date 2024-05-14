@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
@@ -24,7 +23,7 @@ func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapjobClie
 	}
 }
 
-func (s *PostingService) JobPostingsWithClaims(ctx context.Context, req *dto.JobPostingsRequest, claims *jwtresolver.CustomClaims) ([]*domain.JobPosting, error) {
+func (s *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPostingsRequest, claims *jwtresolver.CustomClaims) ([]*domain.JobPosting, error) {
 	jobPostings, err := s.JobPostings(ctx, req)
 	if err != nil {
 		return nil, err
@@ -41,7 +40,7 @@ func (s *PostingService) JobPostingsWithClaims(ctx context.Context, req *dto.Job
 	return jobPostings, nil
 }
 
-func (s *PostingService) JobPostings(ctx context.Context, req *dto.JobPostingsRequest) ([]*domain.JobPosting, error) {
+func (s *PostingService) JobPostings(ctx context.Context, req *JobPostingsRequest) ([]*domain.JobPosting, error) {
 	pbCategories := make([]*postingGrpc.CategoryQueryReq, len(req.QueryReq.Categories))
 	for i, category := range req.QueryReq.Categories {
 		pbCategories[i] = &postingGrpc.CategoryQueryReq{

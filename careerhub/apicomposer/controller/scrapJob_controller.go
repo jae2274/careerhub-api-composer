@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/httputils"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
@@ -46,14 +45,12 @@ func (c *ScrapJobController) GetScrapJobs(w http.ResponseWriter, r *http.Request
 		tagPtr = &tag
 	}
 
-	res, err := c.scrapJobSvc.GetScrapJobs(ctx, claims.UserId, tagPtr)
+	jobPostings, err := c.scrapJobSvc.GetScrapJobs(ctx, claims.UserId, tagPtr)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(&dto.JobPostingsResponse{
-		JobPostings: res,
-	})
+	err = json.NewEncoder(w).Encode(jobPostings)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}

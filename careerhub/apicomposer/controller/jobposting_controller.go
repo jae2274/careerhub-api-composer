@@ -6,7 +6,6 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/httputils"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
@@ -62,7 +61,7 @@ func (c *JobPostingController) JobPostings(w http.ResponseWriter, r *http.Reques
 	// jobPostings를 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(&dto.JobPostingsResponse{JobPostings: jobPostings})
+	err = json.NewEncoder(w).Encode(jobPostings)
 	if httputils.IsError(reqCtx, w, err) {
 		return
 	}
