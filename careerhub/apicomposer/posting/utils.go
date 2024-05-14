@@ -10,10 +10,11 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/query"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 )
 
-func ExtractJobPostingsRequest(r *http.Request, initPage int) (*JobPostingsRequest, error) {
+func ExtractJobPostingsRequest(r *http.Request, initPage int) (*dto.JobPostingsRequest, error) {
 	queryValues := r.URL.Query()
 
 	// "page" 값 추출
@@ -39,7 +40,7 @@ func ExtractJobPostingsRequest(r *http.Request, initPage int) (*JobPostingsReque
 		return nil, err
 	}
 
-	return &JobPostingsRequest{
+	return &dto.JobPostingsRequest{
 		Page:     int32(page),
 		Size:     int32(size),
 		QueryReq: queryReq,

@@ -4,37 +4,44 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
-	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
-	"github.com/jae2274/goutils/cchan/async"
-	"github.com/jae2274/goutils/terr"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-type PostingService interface {
-	JobPostings(ctx context.Context, userId *string, req *JobPostingsRequest) (*dto.JobPostingsResponse, error)
-	JobPostingDetail(ctx context.Context, userId *string, req *postingGrpc.JobPostingDetailRequest) (*JobPostingDetailResponse, error)
-	Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error)
-	Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error)
+type PostingService struct {
+	postingClient  postingGrpc.RestApiGrpcClient
+	scrapjobClient scrapGrpc.ScrapJobGrpcClient
 }
 
-type PostingServiceImpl struct {
-	postingClient postingGrpc.RestApiGrpcClient
-	scrapClient   scrapGrpc.ScrapJobGrpcClient
-	reviewClient  reviewGrpc.ReviewReaderGrpcClient
-}
-
-func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapClient scrapGrpc.ScrapJobGrpcClient, reviewClient reviewGrpc.ReviewReaderGrpcClient) PostingService {
-	return &PostingServiceImpl{
-		postingClient: postingClient,
-		scrapClient:   scrapClient,
-		reviewClient:  reviewClient,
+func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapjobClient scrapGrpc.ScrapJobGrpcClient) *PostingService {
+	return &PostingService{
+		postingClient:  postingClient,
+		scrapjobClient: scrapjobClient,
 	}
 }
 
-func (s *PostingServiceImpl) JobPostings(ctx context.Context, userId *string, req *JobPostingsRequest) (*dto.JobPostingsResponse, error) {
+func (s *PostingService) JobPostingsWithClaims(ctx context.Context, req *dto.JobPostingsRequest, claims *jwtresolver.CustomClaims) ([]*domain.JobPosting, error) {
+	jobPostings, err := s.JobPostings(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	scrapJobs, err := s.getScrapJobsByPostingIds(ctx, claims.UserId, domain.GetJobPostingIds(jobPostings))
+
+	if err != nil {
+		return nil, err
+	}
+
+	domain.AttachScrapped(jobPostings, scrapJobs)
+
+	return jobPostings, nil
+}
+
+func (s *PostingService) JobPostings(ctx context.Context, req *dto.JobPostingsRequest) ([]*domain.JobPosting, error) {
 	pbCategories := make([]*postingGrpc.CategoryQueryReq, len(req.QueryReq.Categories))
 	for i, category := range req.QueryReq.Categories {
 		pbCategories[i] = &postingGrpc.CategoryQueryReq{
@@ -65,22 +72,14 @@ func (s *PostingServiceImpl) JobPostings(ctx context.Context, userId *string, re
 		return nil, err
 	}
 
-	jobPostingResList := dto.ConvertGrpcToJobPostingResList(jobPostings.JobPostings)
-	if userId != nil {
-		err = s.attachIsScrapped(ctx, *userId, jobPostingResList)
-		if err != nil {
-			return nil, err
-		}
-	}
+	jobPostingResList := domain.ConvertGrpcToJobPostingResList(jobPostings.JobPostings)
 
-	return &dto.JobPostingsResponse{
-		JobPostings: jobPostingResList,
-	}, nil
+	return jobPostingResList, nil
 }
 
-func (c *PostingServiceImpl) attachIsScrapped(ctx context.Context, userId string, jobPostings []*dto.JobPostingRes) error {
+func (s *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId string, jobPostings []*domain.JobPostingId) ([]*domain.ScrapJob, error) {
 	if len(jobPostings) == 0 {
-		return nil
+		return []*domain.ScrapJob{}, nil
 	}
 
 	jobPostingIds := make([]*scrapGrpc.JobPostingId, len(jobPostings))
@@ -91,80 +90,60 @@ func (c *PostingServiceImpl) attachIsScrapped(ctx context.Context, userId string
 		}
 	}
 
-	scrapJobRes, err := c.scrapClient.GetScrapJobsById(ctx, &scrapGrpc.GetScrapJobsByIdRequest{
+	res, err := s.scrapjobClient.GetScrapJobsById(ctx, &scrapGrpc.GetScrapJobsByIdRequest{
 		UserId:        userId,
 		JobPostingIds: jobPostingIds,
 	})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	dto.AttachScrapped(jobPostings, scrapJobRes.ScrapJobs)
+	scrapJobs := make([]*domain.ScrapJob, len(res.ScrapJobs))
+	for i, scrapJob := range res.ScrapJobs {
+		scrapJobs[i] = domain.ConvertGrpcToScrapJob(scrapJob)
+	}
 
-	return nil
+	return scrapJobs, nil
 }
 
-func (s *PostingServiceImpl) JobPostingDetail(ctx context.Context, userId *string, req *postingGrpc.JobPostingDetailRequest) (*JobPostingDetailResponse, error) {
-
-	postingChan := async.ExecAsync(func() (*JobPostingDetailResponse, error) {
-		res, err := s.postingClient.JobPostingDetail(ctx, req)
-		if err != nil {
-			return nil, err
-		}
-
-		return ConvertGrpcToJobPostingDetail(res), nil
-	})
-
-	scrapChan := async.ExecAsync(func() (*scrapGrpc.ScrapJob, error) {
-		if userId != nil {
-			scrapJobRes, err := s.scrapClient.GetScrapJobsById(ctx, &scrapGrpc.GetScrapJobsByIdRequest{
-				UserId: *userId,
-				JobPostingIds: []*scrapGrpc.JobPostingId{
-					{
-						Site:      req.Site,
-						PostingId: req.PostingId,
-					},
-				},
-			})
-			if err != nil {
-				return nil, err
-			}
-
-			if len(scrapJobRes.ScrapJobs) > 1 {
-				return nil, terr.Wrap(fmt.Errorf("scrap job response has more than one job. site: %s, postingId: %s", req.Site, req.PostingId))
-			}
-
-			if len(scrapJobRes.ScrapJobs) == 1 {
-				return scrapJobRes.ScrapJobs[0], nil
-			}
-		}
-
-		return nil, nil
-	})
-
-	jobPostingResult := <-postingChan
-	if jobPostingResult.Err != nil {
-		return nil, jobPostingResult.Err
-	}
-	response := jobPostingResult.Value
-
-	scrapJobResult := <-scrapChan
-	if scrapJobResult.Err != nil {
-		return nil, scrapJobResult.Err
+func (s *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *postingGrpc.JobPostingDetailRequest, claims *jwtresolver.CustomClaims) (*domain.JobPostingDetail, error) {
+	res, err := s.JobPostingDetail(ctx, req)
+	if err != nil {
+		return nil, err
 	}
 
-	if scrapJobResult.Value != nil {
-		response.IsScrapped = true
-		response.ScrapTags = scrapJobResult.Value.Tags
+	scrapJobs, err := s.getScrapJobsByPostingIds(ctx, claims.UserId, []*domain.JobPostingId{{Site: res.Site, PostingId: res.PostingId}})
+	if err != nil {
+		return nil, err
 	}
 
-	return response, nil
+	if len(scrapJobs) == 0 {
+		return res, nil
+	}
+
+	if len(scrapJobs) > 1 {
+		return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
+	}
+
+	res.IsScrapped = true
+	res.ScrapTags = scrapJobs[0].Tags
+
+	return res, nil
 }
 
-func (s *PostingServiceImpl) Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error) {
+func (s *PostingService) JobPostingDetail(ctx context.Context, req *postingGrpc.JobPostingDetailRequest) (*domain.JobPostingDetail, error) {
+	res, err := s.postingClient.JobPostingDetail(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	return domain.ConvertGrpcToJobPostingDetail(res), nil
+}
+
+func (s *PostingService) Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error) {
 	return s.postingClient.Categories(ctx, &emptypb.Empty{})
 }
 
-func (s *PostingServiceImpl) Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error) {
+func (s *PostingService) Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error) {
 	return s.postingClient.Skills(ctx, &emptypb.Empty{})
 }

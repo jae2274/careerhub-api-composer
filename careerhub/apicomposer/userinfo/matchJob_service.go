@@ -1,19 +1,18 @@
-package service
+package userinfo
 
 import (
 	"context"
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/query"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 )
 
 type MatchJobService interface {
-	FindMatchJob(ctx context.Context, userId string) (*userinfo.GetMatchJobResponse, error)
-	AddCondition(ctx context.Context, userId string, limitCount uint32, req *userinfo.AddConditionRequest) (*userinfo.IsSuccessResponse, error)
-	UpdateCondition(ctx context.Context, userId string, req *userinfo.UpdateConditionRequest) (*userinfo.IsSuccessResponse, error)
-	DeleteCondition(ctx context.Context, userId string, conditionId string) (*userinfo.IsSuccessResponse, error)
-	UpdateAgreeToMail(ctx context.Context, userId string, agreeToMail bool) (*userinfo.IsSuccessResponse, error)
+	FindMatchJob(ctx context.Context, userId string) (*GetMatchJobResponse, error)
+	AddCondition(ctx context.Context, userId string, limitCount uint32, req *AddConditionRequest) (*IsSuccessResponse, error)
+	UpdateCondition(ctx context.Context, userId string, req *UpdateConditionRequest) (*IsSuccessResponse, error)
+	DeleteCondition(ctx context.Context, userId string, conditionId string) (*IsSuccessResponse, error)
+	UpdateAgreeToMail(ctx context.Context, userId string, agreeToMail bool) (*IsSuccessResponse, error)
 }
 
 type MatchJobServiceImpl struct {
@@ -26,7 +25,7 @@ func NewMatchJobService(matchJobClient restapi_grpc.MatchJobGrpcClient) MatchJob
 	}
 }
 
-func (s *MatchJobServiceImpl) FindMatchJob(ctx context.Context, userId string) (*userinfo.GetMatchJobResponse, error) {
+func (s *MatchJobServiceImpl) FindMatchJob(ctx context.Context, userId string) (*GetMatchJobResponse, error) {
 	res, err := s.matchJobClient.FindMatchJob(ctx, &restapi_grpc.FindMatchJobRequest{
 		UserId: userId,
 	})
@@ -35,14 +34,14 @@ func (s *MatchJobServiceImpl) FindMatchJob(ctx context.Context, userId string) (
 		return nil, err
 	}
 
-	return &userinfo.GetMatchJobResponse{
+	return &GetMatchJobResponse{
 		AgreeToMail: res.AgreeToMail,
 		Conditions:  convertToConditions(res),
 	}, nil
 }
 
-func convertToConditions(res *restapi_grpc.FindMatchJobResponse) []*userinfo.Condition {
-	conditions := make([]*userinfo.Condition, len(res.Conditions))
+func convertToConditions(res *restapi_grpc.FindMatchJobResponse) []*Condition {
+	conditions := make([]*Condition, len(res.Conditions))
 	for i, condition := range res.Conditions {
 		skills := make([][]string, len(condition.Query.SkillNames))
 		for j, skill := range condition.Query.SkillNames {
@@ -57,7 +56,7 @@ func convertToConditions(res *restapi_grpc.FindMatchJobResponse) []*userinfo.Con
 			}
 		}
 
-		conditions[i] = &userinfo.Condition{
+		conditions[i] = &Condition{
 			ConditionId:   condition.ConditionId,
 			ConditionName: condition.ConditionName,
 			Query: &query.Query{
@@ -72,7 +71,7 @@ func convertToConditions(res *restapi_grpc.FindMatchJobResponse) []*userinfo.Con
 	return conditions
 }
 
-func (s *MatchJobServiceImpl) AddCondition(ctx context.Context, userId string, limitCount uint32, req *userinfo.AddConditionRequest) (*userinfo.IsSuccessResponse, error) {
+func (s *MatchJobServiceImpl) AddCondition(ctx context.Context, userId string, limitCount uint32, req *AddConditionRequest) (*IsSuccessResponse, error) {
 
 	res, err := s.matchJobClient.AddCondition(ctx, &restapi_grpc.AddConditionRequest{
 		UserId:     userId,
@@ -86,7 +85,7 @@ func (s *MatchJobServiceImpl) AddCondition(ctx context.Context, userId string, l
 	return convertGrpcToIsSuccessResponse(res), err
 }
 
-func (s *MatchJobServiceImpl) UpdateCondition(ctx context.Context, userId string, req *userinfo.UpdateConditionRequest) (*userinfo.IsSuccessResponse, error) {
+func (s *MatchJobServiceImpl) UpdateCondition(ctx context.Context, userId string, req *UpdateConditionRequest) (*IsSuccessResponse, error) {
 	res, err := s.matchJobClient.UpdateCondition(ctx, &restapi_grpc.UpdateConditionRequest{
 		UserId: userId,
 		Condition: &restapi_grpc.Condition{
@@ -124,7 +123,7 @@ func convertQueryToGrpc(query *query.Query) *restapi_grpc.Query {
 
 }
 
-func (s *MatchJobServiceImpl) DeleteCondition(ctx context.Context, userId string, conditionId string) (*userinfo.IsSuccessResponse, error) {
+func (s *MatchJobServiceImpl) DeleteCondition(ctx context.Context, userId string, conditionId string) (*IsSuccessResponse, error) {
 	res, err := s.matchJobClient.DeleteCondition(ctx, &restapi_grpc.DeleteConditionRequest{
 		UserId:      userId,
 		ConditionId: conditionId,
@@ -133,7 +132,7 @@ func (s *MatchJobServiceImpl) DeleteCondition(ctx context.Context, userId string
 	return convertGrpcToIsSuccessResponse(res), err
 }
 
-func (s *MatchJobServiceImpl) UpdateAgreeToMail(ctx context.Context, userId string, agreeToMail bool) (*userinfo.IsSuccessResponse, error) {
+func (s *MatchJobServiceImpl) UpdateAgreeToMail(ctx context.Context, userId string, agreeToMail bool) (*IsSuccessResponse, error) {
 	res, err := s.matchJobClient.UpdateAgreeToMail(ctx, &restapi_grpc.UpdateAgreeToMailRequest{
 		UserId:      userId,
 		AgreeToMail: agreeToMail,
@@ -142,12 +141,12 @@ func (s *MatchJobServiceImpl) UpdateAgreeToMail(ctx context.Context, userId stri
 	return convertGrpcToIsSuccessResponse(res), err
 }
 
-func convertGrpcToIsSuccessResponse(res *restapi_grpc.IsSuccessResponse) *userinfo.IsSuccessResponse {
+func convertGrpcToIsSuccessResponse(res *restapi_grpc.IsSuccessResponse) *IsSuccessResponse {
 	if res == nil {
 		return nil
 	}
 
-	return &userinfo.IsSuccessResponse{
+	return &IsSuccessResponse{
 		IsSuccess: res.IsSuccess,
 	}
 }

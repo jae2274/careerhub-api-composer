@@ -8,15 +8,14 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/httputils"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/service"
 	"github.com/jae2274/goutils/llog"
 )
 
 type MatchJobController struct {
-	matchJobSvc service.MatchJobService
+	matchJobSvc userinfo.MatchJobService
 }
 
-func NewMatchJobController(matchJobSvc service.MatchJobService) *MatchJobController {
+func NewMatchJobController(matchJobSvc userinfo.MatchJobService) *MatchJobController {
 	return &MatchJobController{
 		matchJobSvc: matchJobSvc,
 	}

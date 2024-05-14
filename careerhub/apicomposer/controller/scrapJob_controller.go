@@ -5,17 +5,18 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/httputils"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/service"
 )
 
 type ScrapJobController struct {
-	scrapJobSvc *service.ScrapJobService
+	scrapJobSvc *userinfo.ScrapJobService
 }
 
-func NewScrapJobController(scrapJobSvc *service.ScrapJobService) *ScrapJobController {
+func NewScrapJobController(scrapJobSvc *userinfo.ScrapJobService) *ScrapJobController {
 	return &ScrapJobController{
 		scrapJobSvc: scrapJobSvc,
 	}
@@ -50,7 +51,9 @@ func (c *ScrapJobController) GetScrapJobs(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	err = json.NewEncoder(w).Encode(res)
+	err = json.NewEncoder(w).Encode(&dto.JobPostingsResponse{
+		JobPostings: res,
+	})
 	if httputils.IsError(ctx, w, err) {
 		return
 	}

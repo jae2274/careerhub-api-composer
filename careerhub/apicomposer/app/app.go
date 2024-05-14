@@ -13,9 +13,8 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
-	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
 	userinfoGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/service"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
 	"github.com/jae2274/goutils/llog"
 	"github.com/jae2274/goutils/mw"
@@ -74,9 +73,9 @@ func Run(mainCtx context.Context) {
 	matchJobClient := userinfoGrpc.NewMatchJobGrpcClient(conn)
 	scrapJobClient := userinfoGrpc.NewScrapJobGrpcClient(conn)
 
-	conn, err = createConn(mainCtx, envVars.ReviewGrpcEndpoint)
-	checkErr(mainCtx, err)
-	reviewClient := reviewGrpc.NewReviewReaderGrpcClient(conn)
+	// conn, err = createConn(mainCtx, envVars.ReviewGrpcEndpoint)
+	// checkErr(mainCtx, err)
+	// reviewClient := reviewGrpc.NewReviewReaderGrpcClient(conn)
 
 	jr := jwtresolver.NewJwtResolver(envVars.SecretKey)
 
@@ -85,21 +84,18 @@ func Run(mainCtx context.Context) {
 
 	rootRouter.Use(httpmw.SetTraceIdMW(), middleware.SetClaimsMW(jr))
 
-	controller.NewJobPostingController(
-		posting.NewPostingService(postingClient, scrapJobClient, reviewClient),
-	).RegisterRoutes(rootRouter)
+	postingService := posting.NewPostingService(postingClient, scrapJobClient)
+	matchJobService := userinfo.NewMatchJobService(matchJobClient)
+	scrapJobService := userinfo.NewScrapJobService(scrapJobClient, postingClient)
+
+	controller.NewJobPostingController(postingService).RegisterRoutes(rootRouter)
 
 	//userinfoRouter 설정
 	userinfoRouter := rootRouter.PathPrefix("/my").Subrouter()
 	userinfoRouter.Use(middleware.CheckJustLoggedIn)
 
-	controller.NewMatchJobController(
-		service.NewMatchJobService(matchJobClient),
-	).RegisterRoutes(userinfoRouter)
-
-	controller.NewScrapJobController(
-		service.NewScrapJobService(scrapJobClient, postingClient),
-	).RegisterRoutes(userinfoRouter)
+	controller.NewMatchJobController(matchJobService).RegisterRoutes(userinfoRouter)
+	controller.NewScrapJobController(scrapJobService).RegisterRoutes(userinfoRouter)
 
 	var allowOrigins []string
 	if envVars.AccessControlAllowOrigin != nil {
