@@ -6,6 +6,7 @@ import (
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/dto"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"github.com/jae2274/goutils/cchan/async"
 	"github.com/jae2274/goutils/terr"
@@ -22,12 +23,14 @@ type PostingService interface {
 type PostingServiceImpl struct {
 	postingClient postingGrpc.RestApiGrpcClient
 	scrapClient   scrapGrpc.ScrapJobGrpcClient
+	reviewClient  reviewGrpc.ReviewReaderGrpcClient
 }
 
-func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapClient scrapGrpc.ScrapJobGrpcClient) PostingService {
+func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapClient scrapGrpc.ScrapJobGrpcClient, reviewClient reviewGrpc.ReviewReaderGrpcClient) PostingService {
 	return &PostingServiceImpl{
 		postingClient: postingClient,
 		scrapClient:   scrapClient,
+		reviewClient:  reviewClient,
 	}
 }
 
