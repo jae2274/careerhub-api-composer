@@ -5,31 +5,39 @@ import (
 	"fmt"
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
+)
+
+const (
+	blindSite = "blind"
 )
 
 type PostingService struct {
 	postingClient  postingGrpc.RestApiGrpcClient
 	scrapjobClient scrapGrpc.ScrapJobGrpcClient
+	reviewClient   reviewGrpc.ReviewReaderGrpcClient
 }
 
-func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapjobClient scrapGrpc.ScrapJobGrpcClient) *PostingService {
+func NewPostingService(postingClient postingGrpc.RestApiGrpcClient, scrapjobClient scrapGrpc.ScrapJobGrpcClient, reviewClient reviewGrpc.ReviewReaderGrpcClient) *PostingService {
 	return &PostingService{
 		postingClient:  postingClient,
 		scrapjobClient: scrapjobClient,
+		reviewClient:   reviewClient,
 	}
 }
 
-func (s *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPostingsRequest, claims *jwtresolver.CustomClaims) ([]*domain.JobPosting, error) {
-	jobPostings, err := s.JobPostings(ctx, req)
+func (p *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPostingsRequest, claims *jwtresolver.CustomClaims) ([]*domain.JobPosting, error) {
+	jobPostings, err := p.JobPostings(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	scrapJobs, err := s.getScrapJobsByPostingIds(ctx, claims.UserId, domain.GetJobPostingIds(jobPostings))
+	scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, domain.GetJobPostingIds(jobPostings))
 
 	if err != nil {
 		return nil, err
@@ -37,10 +45,25 @@ func (s *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPost
 
 	domain.AttachScrapped(jobPostings, scrapJobs)
 
+	if claims.HasRole(userrole.RoleReadReview) {
+		companyScores, err := p.getReviewScoresByCompanyNames(ctx, domain.GetCompanyNames(jobPostings))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, jobPosting := range jobPostings {
+			if companyScore, ok := companyScores[jobPosting.CompanyName]; ok {
+				jobPosting.DefaultName = companyScore.CompanyName
+				jobPosting.Score = companyScore.Score
+				jobPosting.ReviewCount = companyScore.ReviewCount
+			}
+		}
+	}
+
 	return jobPostings, nil
 }
 
-func (s *PostingService) JobPostings(ctx context.Context, req *JobPostingsRequest) ([]*domain.JobPosting, error) {
+func (p *PostingService) JobPostings(ctx context.Context, req *JobPostingsRequest) ([]*domain.JobPosting, error) {
 	pbCategories := make([]*postingGrpc.CategoryQueryReq, len(req.QueryReq.Categories))
 	for i, category := range req.QueryReq.Categories {
 		pbCategories[i] = &postingGrpc.CategoryQueryReq{
@@ -56,7 +79,7 @@ func (s *PostingService) JobPostings(ctx context.Context, req *JobPostingsReques
 		}
 	}
 
-	jobPostings, err := s.postingClient.JobPostings(ctx, &postingGrpc.JobPostingsRequest{
+	jobPostings, err := p.postingClient.JobPostings(ctx, &postingGrpc.JobPostingsRequest{
 		Page: req.Page,
 		Size: req.Size,
 		QueryReq: &postingGrpc.QueryReq{
@@ -76,7 +99,7 @@ func (s *PostingService) JobPostings(ctx context.Context, req *JobPostingsReques
 	return jobPostingResList, nil
 }
 
-func (s *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId string, jobPostings []*domain.JobPostingId) ([]*domain.ScrapJob, error) {
+func (p *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId string, jobPostings []*domain.JobPostingId) ([]*domain.ScrapJob, error) {
 	if len(jobPostings) == 0 {
 		return []*domain.ScrapJob{}, nil
 	}
@@ -89,7 +112,7 @@ func (s *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId st
 		}
 	}
 
-	res, err := s.scrapjobClient.GetScrapJobsById(ctx, &scrapGrpc.GetScrapJobsByIdRequest{
+	res, err := p.scrapjobClient.GetScrapJobsById(ctx, &scrapGrpc.GetScrapJobsByIdRequest{
 		UserId:        userId,
 		JobPostingIds: jobPostingIds,
 	})
@@ -105,13 +128,22 @@ func (s *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId st
 	return scrapJobs, nil
 }
 
-func (s *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *postingGrpc.JobPostingDetailRequest, claims *jwtresolver.CustomClaims) (*domain.JobPostingDetail, error) {
-	res, err := s.JobPostingDetail(ctx, req)
+func (p *PostingService) getReviewScoresByCompanyNames(ctx context.Context, companyNames []string) (map[string]*reviewGrpc.CompanyScore, error) {
+	res, err := p.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: blindSite, CompanyNames: companyNames})
 	if err != nil {
 		return nil, err
 	}
 
-	scrapJobs, err := s.getScrapJobsByPostingIds(ctx, claims.UserId, []*domain.JobPostingId{{Site: res.Site, PostingId: res.PostingId}})
+	return res.CompanyScores, nil
+}
+
+func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *postingGrpc.JobPostingDetailRequest, claims *jwtresolver.CustomClaims) (*domain.JobPostingDetail, error) {
+	res, err := p.JobPostingDetail(ctx, req)
+	if err != nil {
+		return nil, err
+	}
+
+	scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, []*domain.JobPostingId{{Site: res.Site, PostingId: res.PostingId}})
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +162,8 @@ func (s *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 	return res, nil
 }
 
-func (s *PostingService) JobPostingDetail(ctx context.Context, req *postingGrpc.JobPostingDetailRequest) (*domain.JobPostingDetail, error) {
-	res, err := s.postingClient.JobPostingDetail(ctx, req)
+func (p *PostingService) JobPostingDetail(ctx context.Context, req *postingGrpc.JobPostingDetailRequest) (*domain.JobPostingDetail, error) {
+	res, err := p.postingClient.JobPostingDetail(ctx, req)
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +171,10 @@ func (s *PostingService) JobPostingDetail(ctx context.Context, req *postingGrpc.
 	return domain.ConvertGrpcToJobPostingDetail(res), nil
 }
 
-func (s *PostingService) Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error) {
-	return s.postingClient.Categories(ctx, &emptypb.Empty{})
+func (p *PostingService) Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error) {
+	return p.postingClient.Categories(ctx, &emptypb.Empty{})
 }
 
-func (s *PostingService) Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error) {
-	return s.postingClient.Skills(ctx, &emptypb.Empty{})
+func (p *PostingService) Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error) {
+	return p.postingClient.Skills(ctx, &emptypb.Empty{})
 }

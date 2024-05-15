@@ -21,6 +21,9 @@ type JobPosting struct {
 	MaxCareer   *int32   `json:"maxCareer"`
 	IsScrapped  bool     `json:"isScrapped"`
 	Tags        []string `json:"tags"`
+	DefaultName string   `json:"defaultName,omitempty"`
+	Score       int32    `json:"score,omitempty"`
+	ReviewCount int32    `json:"reviewCount,omitempty"`
 }
 
 func ConvertGrpcToJobPostingRes(jobPosting *restapi_grpc.JobPostingRes) *JobPosting {
@@ -69,6 +72,14 @@ func GetJobPostingIds(jobPostings []*JobPosting) []*JobPostingId {
 		}
 	}
 	return jobPostingIds
+}
+
+func GetCompanyNames(jobPostings []*JobPosting) []string {
+	companyNames := make([]string, len(jobPostings))
+	for i, jobPosting := range jobPostings {
+		companyNames[i] = jobPosting.CompanyName
+	}
+	return companyNames
 }
 
 type JobPostingDetail struct {

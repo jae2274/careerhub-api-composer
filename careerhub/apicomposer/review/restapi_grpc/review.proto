@@ -14,9 +14,14 @@ message GetCompanyScoresRequest{
 }
 
 message GetCompanyScoresResponse{
-    map<string, int32> companyScores = 1;
+    map<string, CompanyScore> companyScores = 1;
 }
 
+message CompanyScore{
+    string companyName = 1;
+    int32 score = 2;
+    int32 reviewCount = 3;
+}
 message GetCompanyReviewsRequest{
     string site = 1;
     string companyName = 2;

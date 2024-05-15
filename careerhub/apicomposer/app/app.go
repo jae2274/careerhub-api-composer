@@ -13,6 +13,7 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
 	userinfoGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
@@ -73,9 +74,9 @@ func Run(mainCtx context.Context) {
 	matchJobClient := userinfoGrpc.NewMatchJobGrpcClient(conn)
 	scrapJobClient := userinfoGrpc.NewScrapJobGrpcClient(conn)
 
-	// conn, err = createConn(mainCtx, envVars.ReviewGrpcEndpoint)
-	// checkErr(mainCtx, err)
-	// reviewClient := reviewGrpc.NewReviewReaderGrpcClient(conn)
+	conn, err = createConn(mainCtx, envVars.ReviewGrpcEndpoint)
+	checkErr(mainCtx, err)
+	reviewClient := reviewGrpc.NewReviewReaderGrpcClient(conn)
 
 	jr := jwtresolver.NewJwtResolver(envVars.SecretKey)
 
@@ -84,7 +85,7 @@ func Run(mainCtx context.Context) {
 
 	rootRouter.Use(httpmw.SetTraceIdMW(), middleware.SetClaimsMW(jr))
 
-	postingService := posting.NewPostingService(postingClient, scrapJobClient)
+	postingService := posting.NewPostingService(postingClient, scrapJobClient, reviewClient)
 	matchJobService := userinfo.NewMatchJobService(matchJobClient)
 	scrapJobService := userinfo.NewScrapJobService(scrapJobClient, postingClient)
 
