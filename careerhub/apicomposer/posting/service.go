@@ -13,10 +13,6 @@ import (
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
-const (
-	blindSite = "blind"
-)
-
 type PostingService struct {
 	postingClient  postingGrpc.RestApiGrpcClient
 	scrapjobClient scrapGrpc.ScrapJobGrpcClient
@@ -131,7 +127,7 @@ func (p *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId st
 }
 
 func (p *PostingService) getReviewScoresByCompanyNames(ctx context.Context, companyNames []string) (map[string]*reviewGrpc.CompanyScore, error) {
-	res, err := p.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: blindSite, CompanyNames: companyNames})
+	res, err := p.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: domain.ReviewSite, CompanyNames: companyNames})
 	if err != nil {
 		return nil, err
 	}

@@ -4,28 +4,34 @@ import (
 	"context"
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	scrapJobGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 )
 
 type ScrapJobService struct {
 	scrapjobClient scrapJobGrpc.ScrapJobGrpcClient
 	postingClient  postingGrpc.RestApiGrpcClient
+	reviewClient   reviewGrpc.ReviewReaderGrpcClient
 }
 
 func NewScrapJobService(
 	scrapjobClient scrapJobGrpc.ScrapJobGrpcClient,
 	postingClient postingGrpc.RestApiGrpcClient,
+	reviewClient reviewGrpc.ReviewReaderGrpcClient,
 ) *ScrapJobService {
 	return &ScrapJobService{
 		scrapjobClient: scrapjobClient,
 		postingClient:  postingClient,
+		reviewClient:   reviewClient,
 	}
 }
 
-func (s *ScrapJobService) GetScrapJobs(ctx context.Context, userId string, tag *string) ([]*domain.JobPosting, error) {
+func (s *ScrapJobService) GetScrapJobs(ctx context.Context, claims *jwtresolver.CustomClaims, tag *string) ([]*domain.JobPosting, error) {
 	scrapJobRes, err := s.scrapjobClient.GetScrapJobs(ctx, &scrapJobGrpc.GetScrapJobsRequest{
-		UserId: userId,
+		UserId: claims.UserId,
 		Tag:    tag,
 	})
 
@@ -41,6 +47,23 @@ func (s *ScrapJobService) GetScrapJobs(ctx context.Context, userId string, tag *
 	}
 
 	domain.AttachScrapped(jobPostings, scrapJobs)
+
+	if claims.HasRole(userrole.RoleReadReview) {
+		companyScores, err := s.getReviewScoresByCompanyNames(ctx, domain.GetCompanyNames(jobPostings))
+		if err != nil {
+			return nil, err
+		}
+
+		for _, jobPosting := range jobPostings {
+			if companyScore, ok := companyScores[jobPosting.CompanyName]; ok {
+				jobPosting.ReviewInfo = &domain.ReviewInfo{
+					Score:       companyScore.Score,
+					ReviewCount: companyScore.ReviewCount,
+					DefaultName: companyScore.CompanyName,
+				}
+			}
+		}
+	}
 
 	return jobPostings, nil
 }
@@ -64,6 +87,15 @@ func (s *ScrapJobService) getJobPostingsByPostingIds(ctx context.Context, scrapJ
 	jobPostings := domain.ConvertGrpcToJobPostingResList(postings.JobPostings)
 
 	return jobPostings, nil
+}
+
+func (s *ScrapJobService) getReviewScoresByCompanyNames(ctx context.Context, companyNames []string) (map[string]*reviewGrpc.CompanyScore, error) {
+	res, err := s.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: domain.ReviewSite, CompanyNames: companyNames})
+	if err != nil {
+		return nil, err
+	}
+
+	return res.CompanyScores, nil
 }
 
 func (s *ScrapJobService) AddScrapJob(ctx context.Context, in *scrapJobGrpc.AddScrapJobRequest) error {

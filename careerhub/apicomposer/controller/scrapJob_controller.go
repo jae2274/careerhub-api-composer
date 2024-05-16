@@ -45,7 +45,7 @@ func (c *ScrapJobController) GetScrapJobs(w http.ResponseWriter, r *http.Request
 		tagPtr = &tag
 	}
 
-	jobPostings, err := c.scrapJobSvc.GetScrapJobs(ctx, claims.UserId, tagPtr)
+	jobPostings, err := c.scrapJobSvc.GetScrapJobs(ctx, claims, tagPtr)
 	if httputils.IsError(ctx, w, err) {
 		return
 	}

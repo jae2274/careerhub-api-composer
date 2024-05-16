@@ -4,6 +4,10 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 )
 
+const (
+	ReviewSite = "blind"
+)
+
 type JobPostingId struct {
 	Site      string `json:"site"`
 	PostingId string `json:"postingId"`
@@ -29,9 +33,9 @@ type ScrapInfo struct {
 }
 
 type ReviewInfo struct {
-	Score       int32  `json:"score,omitempty"`
-	ReviewCount int32  `json:"reviewCount,omitempty"`
-	DefaultName string `json:"defaultName,omitempty"`
+	Score       int32  `json:"score"`
+	ReviewCount int32  `json:"reviewCount"`
+	DefaultName string `json:"defaultName"`
 }
 
 func ConvertGrpcToJobPostingRes(jobPosting *restapi_grpc.JobPostingRes) *JobPosting {

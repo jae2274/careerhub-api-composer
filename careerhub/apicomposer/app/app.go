@@ -87,7 +87,7 @@ func Run(mainCtx context.Context) {
 
 	postingService := posting.NewPostingService(postingClient, scrapJobClient, reviewClient)
 	matchJobService := userinfo.NewMatchJobService(matchJobClient)
-	scrapJobService := userinfo.NewScrapJobService(scrapJobClient, postingClient)
+	scrapJobService := userinfo.NewScrapJobService(scrapJobClient, postingClient, reviewClient)
 
 	controller.NewJobPostingController(postingService).RegisterRoutes(rootRouter)
 
