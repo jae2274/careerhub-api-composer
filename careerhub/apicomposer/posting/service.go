@@ -154,8 +154,29 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 		return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
 	}
 
-	res.IsScrapped = true
-	res.ScrapTags = scrapJobs[0].Tags
+	tags := scrapJobs[0].Tags
+	if tags == nil {
+		tags = []string{}
+	}
+	res.ScrapInfo = &domain.ScrapInfo{
+		IsScrapped: true,
+		Tags:       tags,
+	}
+
+	if claims.HasRole(userrole.RoleReadReview) {
+		companyScores, err := p.getReviewScoresByCompanyNames(ctx, []string{res.CompanyName})
+		if err != nil {
+			return nil, err
+		}
+
+		if companyScore, ok := companyScores[res.CompanyName]; ok {
+			res.ReviewInfo = &domain.ReviewInfo{
+				Score:       companyScore.Score,
+				ReviewCount: companyScore.ReviewCount,
+				DefaultName: companyScore.CompanyName,
+			}
+		}
+	}
 
 	return res, nil
 }
