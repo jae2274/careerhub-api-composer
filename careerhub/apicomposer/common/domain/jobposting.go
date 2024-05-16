@@ -9,21 +9,29 @@ type JobPostingId struct {
 	PostingId string `json:"postingId"`
 }
 type JobPosting struct {
-	Site        string   `json:"site"`
-	PostingId   string   `json:"postingId"`
-	Title       string   `json:"title"`
-	CompanyName string   `json:"companyName"`
-	Skills      []string `json:"skills"`
-	Categories  []string `json:"categories"`
-	ImageUrl    *string  `json:"imageUrl"`
-	Addresses   []string `json:"addresses"`
-	MinCareer   *int32   `json:"minCareer"`
-	MaxCareer   *int32   `json:"maxCareer"`
-	IsScrapped  bool     `json:"isScrapped"`
-	Tags        []string `json:"tags"`
-	DefaultName string   `json:"defaultName,omitempty"`
-	Score       int32    `json:"score,omitempty"`
-	ReviewCount int32    `json:"reviewCount,omitempty"`
+	Site        string      `json:"site"`
+	PostingId   string      `json:"postingId"`
+	Title       string      `json:"title"`
+	CompanyName string      `json:"companyName"`
+	Skills      []string    `json:"skills"`
+	Categories  []string    `json:"categories"`
+	ImageUrl    *string     `json:"imageUrl"`
+	Addresses   []string    `json:"addresses"`
+	MinCareer   *int32      `json:"minCareer"`
+	MaxCareer   *int32      `json:"maxCareer"`
+	ScrapInfo   *ScrapInfo  `json:"scrapInfo"`
+	ReviewInfo  *ReviewInfo `json:"reviewInfo,omitempty"`
+}
+
+type ScrapInfo struct {
+	IsScrapped bool     `json:"isScrapped"`
+	Tags       []string `json:"tags"`
+}
+
+type ReviewInfo struct {
+	Score       int32  `json:"score,omitempty"`
+	ReviewCount int32  `json:"reviewCount,omitempty"`
+	DefaultName string `json:"defaultName,omitempty"`
 }
 
 func ConvertGrpcToJobPostingRes(jobPosting *restapi_grpc.JobPostingRes) *JobPosting {
@@ -57,8 +65,19 @@ func AttachScrapped(jobPostings []*JobPosting, scrapJobs []*ScrapJob) {
 
 	for _, jobPosting := range jobPostings {
 		if scrapJob, ok := scrapJobMap[jobPosting.Site+jobPosting.PostingId]; ok {
-			jobPosting.IsScrapped = true
-			jobPosting.Tags = scrapJob.Tags
+			tags := scrapJob.Tags
+			if tags == nil {
+				tags = []string{}
+			}
+			jobPosting.ScrapInfo = &ScrapInfo{
+				IsScrapped: true,
+				Tags:       tags,
+			}
+		} else {
+			jobPosting.ScrapInfo = &ScrapInfo{
+				IsScrapped: false,
+				Tags:       []string{},
+			}
 		}
 	}
 }

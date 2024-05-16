@@ -53,9 +53,11 @@ func (p *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPost
 
 		for _, jobPosting := range jobPostings {
 			if companyScore, ok := companyScores[jobPosting.CompanyName]; ok {
-				jobPosting.DefaultName = companyScore.CompanyName
-				jobPosting.Score = companyScore.Score
-				jobPosting.ReviewCount = companyScore.ReviewCount
+				jobPosting.ReviewInfo = &domain.ReviewInfo{
+					Score:       companyScore.Score,
+					ReviewCount: companyScore.ReviewCount,
+					DefaultName: companyScore.CompanyName,
+				}
 			}
 		}
 	}
