@@ -13,11 +13,13 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
 	userinfoGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/service"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/vars"
 	"github.com/jae2274/goutils/llog"
 	"github.com/jae2274/goutils/mw"
+	"github.com/jae2274/goutils/mw/grpcmw"
 	"github.com/jae2274/goutils/mw/httpmw"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -47,6 +49,13 @@ func initLogger(ctx context.Context) error {
 	return nil
 }
 
+func createConn(ctx context.Context, endpoint string) (*grpc.ClientConn, error) {
+	return grpc.NewClient(endpoint, grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithChainStreamInterceptor(grpcmw.SetTraceIdStreamMW()),
+		grpc.WithChainUnaryInterceptor(grpcmw.SetTraceIdUnaryMW()),
+	)
+}
+
 func Run(mainCtx context.Context) {
 
 	err := initLogger(mainCtx)
@@ -56,14 +65,18 @@ func Run(mainCtx context.Context) {
 	envVars, err := vars.Variables()
 	checkErr(mainCtx, err)
 
-	conn, err := grpc.NewClient(envVars.PostingGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := createConn(mainCtx, envVars.PostingGrpcEndpoint)
 	checkErr(mainCtx, err)
 	postingClient := postingGrpc.NewRestApiGrpcClient(conn)
 
-	conn, err = grpc.NewClient(envVars.UserinfoGrpcEndpoint, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err = createConn(mainCtx, envVars.UserinfoGrpcEndpoint)
 	checkErr(mainCtx, err)
 	matchJobClient := userinfoGrpc.NewMatchJobGrpcClient(conn)
 	scrapJobClient := userinfoGrpc.NewScrapJobGrpcClient(conn)
+
+	conn, err = createConn(mainCtx, envVars.ReviewGrpcEndpoint)
+	checkErr(mainCtx, err)
+	reviewClient := reviewGrpc.NewReviewReaderGrpcClient(conn)
 
 	jr := jwtresolver.NewJwtResolver(envVars.SecretKey)
 
@@ -72,21 +85,18 @@ func Run(mainCtx context.Context) {
 
 	rootRouter.Use(httpmw.SetTraceIdMW(), middleware.SetClaimsMW(jr))
 
-	controller.NewJobPostingController(
-		posting.NewPostingService(postingClient, scrapJobClient),
-	).RegisterRoutes(rootRouter)
+	postingService := posting.NewPostingService(postingClient, scrapJobClient, reviewClient)
+	matchJobService := userinfo.NewMatchJobService(matchJobClient)
+	scrapJobService := userinfo.NewScrapJobService(scrapJobClient, postingClient, reviewClient)
+
+	controller.NewJobPostingController(postingService).RegisterRoutes(rootRouter)
 
 	//userinfoRouter 설정
 	userinfoRouter := rootRouter.PathPrefix("/my").Subrouter()
 	userinfoRouter.Use(middleware.CheckJustLoggedIn)
 
-	controller.NewMatchJobController(
-		service.NewMatchJobService(matchJobClient),
-	).RegisterRoutes(userinfoRouter)
-
-	controller.NewScrapJobController(
-		service.NewScrapJobService(scrapJobClient, postingClient),
-	).RegisterRoutes(userinfoRouter)
+	controller.NewMatchJobController(matchJobService).RegisterRoutes(userinfoRouter)
+	controller.NewScrapJobController(scrapJobService).RegisterRoutes(userinfoRouter)
 
 	var allowOrigins []string
 	if envVars.AccessControlAllowOrigin != nil {

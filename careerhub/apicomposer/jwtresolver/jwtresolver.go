@@ -10,12 +10,6 @@ import (
 	"github.com/jae2274/goutils/terr"
 )
 
-type CustomClaims struct {
-	UserId string
-	Roles  []string
-	jwt.RegisteredClaims
-}
-
 type JwtResolver struct {
 	secretKey []byte
 	validator *jwt.Validator
