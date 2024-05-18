@@ -3,7 +3,7 @@ package jwtresolver
 import "github.com/golang-jwt/jwt/v5"
 
 type CustomClaims struct {
-	UserId string
+	UserId string `validate:"nonzero"`
 	Roles  []string
 	jwt.RegisteredClaims
 }

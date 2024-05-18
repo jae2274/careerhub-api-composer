@@ -8,6 +8,7 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review"
 	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"google.golang.org/protobuf/types/known/emptypb"
@@ -146,21 +147,23 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 		return nil, err
 	}
 
-	if len(scrapJobs) == 0 {
-		return res, nil
-	}
-
 	if len(scrapJobs) > 1 {
 		return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
 	}
-
-	tags := scrapJobs[0].Tags
-	if tags == nil {
-		tags = []string{}
-	}
-	res.ScrapInfo = &domain.ScrapInfo{
-		IsScrapped: true,
-		Tags:       tags,
+	if len(scrapJobs) == 1 {
+		tags := scrapJobs[0].Tags
+		if tags == nil {
+			tags = []string{}
+		}
+		res.ScrapInfo = &domain.ScrapInfo{
+			IsScrapped: true,
+			Tags:       tags,
+		}
+	} else {
+		res.ScrapInfo = &domain.ScrapInfo{
+			IsScrapped: false,
+			Tags:       []string{},
+		}
 	}
 
 	if claims.HasRole(userrole.RoleReadReview) {
@@ -176,6 +179,18 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 				DefaultName: companyScore.CompanyName,
 			}
 		}
+
+		reviewsRes, err := p.reviewClient.GetCompanyReviews(ctx, &reviewGrpc.GetCompanyReviewsRequest{
+			Site:        domain.ReviewSite,
+			CompanyName: res.CompanyName,
+			Offset:      0,
+			Limit:       review.DefaultSize,
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		res.FirstPageReviews = domain.ConvertGrpcToReviews(reviewsRes.Reviews)
 	}
 
 	return res, nil

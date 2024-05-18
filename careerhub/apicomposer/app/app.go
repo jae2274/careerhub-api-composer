@@ -8,11 +8,13 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/controller"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review"
 	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo"
 	userinfoGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
@@ -88,6 +90,7 @@ func Run(mainCtx context.Context) {
 	postingService := posting.NewPostingService(postingClient, scrapJobClient, reviewClient)
 	matchJobService := userinfo.NewMatchJobService(matchJobClient)
 	scrapJobService := userinfo.NewScrapJobService(scrapJobClient, postingClient, reviewClient)
+	reviewService := review.NewReviewService(reviewClient)
 
 	controller.NewJobPostingController(postingService).RegisterRoutes(rootRouter)
 
@@ -97,6 +100,12 @@ func Run(mainCtx context.Context) {
 
 	controller.NewMatchJobController(matchJobService).RegisterRoutes(userinfoRouter)
 	controller.NewScrapJobController(scrapJobService).RegisterRoutes(userinfoRouter)
+
+	//reviewRouter 설정
+	reviewRouter := rootRouter.NewRoute().Subrouter()
+	reviewRouter.Use(middleware.CheckHasRole(userrole.RoleReadReview))
+
+	controller.NewReviewController(reviewService).RegisterRoutes(reviewRouter)
 
 	var allowOrigins []string
 	if envVars.AccessControlAllowOrigin != nil {
