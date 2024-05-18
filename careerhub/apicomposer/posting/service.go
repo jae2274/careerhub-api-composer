@@ -50,11 +50,7 @@ func (p *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPost
 
 		for _, jobPosting := range jobPostings {
 			if companyScore, ok := companyScores[jobPosting.CompanyName]; ok {
-				jobPosting.ReviewInfo = &domain.ReviewInfo{
-					Score:       companyScore.Score,
-					ReviewCount: companyScore.ReviewCount,
-					DefaultName: companyScore.CompanyName,
-				}
+				jobPosting.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScore)
 			}
 		}
 	}
@@ -173,11 +169,7 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 		}
 
 		if companyScore, ok := companyScores[res.CompanyName]; ok {
-			res.ReviewInfo = &domain.ReviewInfo{
-				Score:       companyScore.Score,
-				ReviewCount: companyScore.ReviewCount,
-				DefaultName: companyScore.CompanyName,
-			}
+			res.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScore)
 		}
 
 		reviewsRes, err := p.reviewClient.GetCompanyReviews(ctx, &reviewGrpc.GetCompanyReviewsRequest{

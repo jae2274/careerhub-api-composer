@@ -6,6 +6,13 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 )
 
+type ReviewInfo struct {
+	Score           int32  `json:"score"`
+	ReviewCount     int32  `json:"reviewCount"`
+	DefaultName     string `json:"defaultName"`
+	IsCompleteCrawl bool   `json:"isCompleteCrawl"`
+}
+
 type Review struct {
 	Score            int32     `json:"score"`
 	Summary          string    `json:"summary"`
@@ -13,6 +20,15 @@ type Review struct {
 	ReviewUserId     string    `json:"reviewUserId"`
 	JobType          string    `json:"jobType"`
 	Date             time.Time `json:"date"`
+}
+
+func ConvertGrpcToReviewInfo(reviewInfo *restapi_grpc.CompanyScore) *ReviewInfo {
+	return &ReviewInfo{
+		Score:           reviewInfo.Score,
+		ReviewCount:     reviewInfo.ReviewCount,
+		DefaultName:     reviewInfo.CompanyName,
+		IsCompleteCrawl: reviewInfo.IsCompleteCrawl,
+	}
 }
 
 func ConvertGrpcToReviews(reviews []*restapi_grpc.Review) []*Review {

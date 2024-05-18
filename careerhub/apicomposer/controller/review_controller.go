@@ -2,7 +2,9 @@ package controller
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 
 	"github.com/gorilla/mux"
@@ -25,33 +27,49 @@ func (c *ReviewController) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/company-review/{companyName}/reviews", c.GetReviews).Methods("GET")
 }
 
-func (c *ReviewController) GetReviews(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	pageStr := r.URL.Query().Get("page")
-	sizeStr := r.URL.Query().Get("size")
-	page, size := review.InitPage, review.DefaultSize
-
+func getPage(urlValues url.Values) (int, error) {
+	pageStr := urlValues.Get("page")
 	if pageStr != "" {
 		page, err := strconv.Atoi(pageStr)
-		if err != nil || page < 0 {
-			if err != nil {
-				llog.LogErr(ctx, err)
-			}
-
-			http.Error(w, "Invalid page number", http.StatusBadRequest)
-			return
+		if err != nil || page < review.InitPage {
+			return 0, fmt.Errorf("invalid page number. %s", pageStr)
 		}
+
+		return page, nil
 	}
 
+	return review.InitPage, nil
+}
+
+func getPageSize(urlValues url.Values) (int, error) {
+	sizeStr := urlValues.Get("size")
 	if sizeStr != "" {
 		size, err := strconv.Atoi(sizeStr)
 		if err != nil || size < 0 {
-			if err != nil {
-				llog.LogErr(ctx, err)
-			}
-			http.Error(w, "Invalid page size", http.StatusBadRequest)
-			return
+			return 0, fmt.Errorf("invalid page size. %s", sizeStr)
 		}
+
+		return size, nil
+	}
+
+	return review.DefaultSize, nil
+}
+
+func (c *ReviewController) GetReviews(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	page, err := getPage(r.URL.Query())
+	if err != nil {
+		llog.LogErr(ctx, err)
+		http.Error(w, "Invalid page", http.StatusBadRequest)
+		return
+	}
+
+	size, err := getPageSize(r.URL.Query())
+	if err != nil {
+		llog.LogErr(ctx, err)
+		http.Error(w, "Invalid page size", http.StatusBadRequest)
+		return
 	}
 
 	vars := mux.Vars(r)

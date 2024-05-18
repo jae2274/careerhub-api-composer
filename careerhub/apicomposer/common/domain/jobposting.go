@@ -32,12 +32,6 @@ type ScrapInfo struct {
 	Tags       []string `json:"tags"`
 }
 
-type ReviewInfo struct {
-	Score       int32  `json:"score"`
-	ReviewCount int32  `json:"reviewCount"`
-	DefaultName string `json:"defaultName"`
-}
-
 func ConvertGrpcToJobPostingRes(jobPosting *restapi_grpc.JobPostingRes) *JobPosting {
 	return &JobPosting{
 		Site:        jobPosting.Site,

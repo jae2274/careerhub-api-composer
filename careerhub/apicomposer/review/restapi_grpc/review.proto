@@ -21,6 +21,7 @@ message CompanyScore{
     string companyName = 1;
     int32 score = 2;
     int32 reviewCount = 3;
+    bool isCompleteCrawl = 4;
 }
 message GetCompanyReviewsRequest{
     string site = 1;
