@@ -1,6 +1,7 @@
 package jwtresolver
 
 import (
+	"errors"
 	"net/http"
 	"slices"
 	"strings"
@@ -8,6 +9,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"github.com/jae2274/goutils/terr"
+	"gopkg.in/validator.v2"
 )
 
 type JwtResolver struct {
@@ -28,25 +30,37 @@ func NewJwtResolver(secretKey string) *JwtResolver {
 	}
 }
 
-func (j *JwtResolver) ParseToken(tokenString string) (*CustomClaims, error) {
+func (j *JwtResolver) ParseToken(tokenString string) (*CustomClaims, bool, error) {
 
 	tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
-	jwt, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+	jwtToken, err := jwt.ParseWithClaims(tokenString, &CustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return j.secretKey, nil
 	})
 
-	if err != nil {
-		return nil, err
-	}
-
-	if claims, ok := jwt.Claims.(*CustomClaims); ok {
-		return claims, nil
+	if jwtToken.Valid {
+		if claims, ok := jwtToken.Claims.(*CustomClaims); ok {
+			if err := validator.Validate(claims); err != nil {
+				return claims, false, err
+			} else {
+				return claims, true, nil
+			}
+		} else {
+			return &CustomClaims{}, false, terr.New("invalid token. claims is not CustomClaims type")
+		}
+	} else if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, jwt.ErrTokenNotValidYet) {
+		return &CustomClaims{}, false, nil
+	} else if errors.Is(err, jwt.ErrTokenMalformed) {
+		return &CustomClaims{}, false, terr.New("invalid token. token is malformed")
 	} else {
-		return nil, terr.New("invalid token. claims is not CustomClaims type")
+		return &CustomClaims{}, false, terr.Wrap(err)
 	}
 }
 
 func (j *JwtResolver) Validate(claims *CustomClaims) error {
+	if err := validator.Validate(claims); err != nil {
+		return err
+	}
+
 	return j.validator.Validate(claims)
 }
 
@@ -60,13 +74,12 @@ func (j *JwtResolver) CheckHasRole(role string) mux.MiddlewareFunc {
 			}
 
 			tokenString = strings.Replace(tokenString, "Bearer ", "", 1)
-			claims, err := j.ParseToken(tokenString)
+			claims, isValid, err := j.ParseToken(tokenString)
 			if err != nil {
-				w.WriteHeader(http.StatusUnauthorized)
+				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
-
-			if err := j.Validate(claims); err != nil {
+			if !isValid {
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}

@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"slices"
 
-	jwt "github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	"github.com/jae2274/goutils/llog"
@@ -20,18 +19,14 @@ func SetClaimsMW(jr *jwtresolver.JwtResolver) mux.MiddlewareFunc {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString := r.Header.Get("Authorization")
 			if tokenString != "" {
-				claims, err := jr.ParseToken(tokenString) //TODO: 테스트코드 추가 필요
+				claims, isValid, err := jr.ParseToken(tokenString) //TODO: 테스트코드 추가 필요
 				if err != nil {
-					if err == jwt.ErrTokenExpired {
-						w.WriteHeader(http.StatusUnauthorized)
-						return
-					}
 					llog.LogErr(r.Context(), err)
 					w.WriteHeader(http.StatusInternalServerError)
 					return
 				}
 
-				if err := jr.Validate(claims); err != nil {
+				if !isValid {
 					w.WriteHeader(http.StatusUnauthorized)
 					return
 				}
