@@ -24,7 +24,7 @@ func NewReviewController(reviewService *review.ReviewService) *ReviewController 
 }
 
 func (c *ReviewController) RegisterRoutes(router *mux.Router) {
-	router.HandleFunc("/company-review/{companyName}/reviews", c.GetReviews).Methods("GET")
+	router.HandleFunc("/company-review/reviews", c.GetReviews).Methods("GET")
 }
 
 func getPage(urlValues url.Values) (int, error) {
@@ -72,13 +72,14 @@ func (c *ReviewController) GetReviews(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	vars := mux.Vars(r)
-	companyName, ok := vars["companyName"]
-	if !ok {
-		http.Error(w, "Invalid company name", http.StatusBadRequest)
+	companyName := r.URL.Query().Get("companyName")
+	llog.Info(ctx, fmt.Sprintf("companyName: %s", companyName))
+	if companyName == "" {
+		err := fmt.Errorf("companyName is required")
+		llog.LogErr(ctx, err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-
 	reviews, err := c.reviewService.GetReviews(r.Context(), companyName, page, size)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
