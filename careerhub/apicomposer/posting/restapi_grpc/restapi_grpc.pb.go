@@ -24,6 +24,7 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RestApiGrpcClient interface {
 	JobPostings(ctx context.Context, in *JobPostingsRequest, opts ...grpc.CallOption) (*JobPostingsResponse, error)
+	CountJobPostings(ctx context.Context, in *JobPostingsRequest, opts ...grpc.CallOption) (*CountJobPostingsResponse, error)
 	JobPostingDetail(ctx context.Context, in *JobPostingDetailRequest, opts ...grpc.CallOption) (*JobPostingDetailResponse, error)
 	Categories(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CategoriesResponse, error)
 	Skills(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*SkillsResponse, error)
@@ -41,6 +42,15 @@ func NewRestApiGrpcClient(cc grpc.ClientConnInterface) RestApiGrpcClient {
 func (c *restApiGrpcClient) JobPostings(ctx context.Context, in *JobPostingsRequest, opts ...grpc.CallOption) (*JobPostingsResponse, error) {
 	out := new(JobPostingsResponse)
 	err := c.cc.Invoke(ctx, "/careerhub.posting_service.restapi_grpc.RestApiGrpc/JobPostings", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *restApiGrpcClient) CountJobPostings(ctx context.Context, in *JobPostingsRequest, opts ...grpc.CallOption) (*CountJobPostingsResponse, error) {
+	out := new(CountJobPostingsResponse)
+	err := c.cc.Invoke(ctx, "/careerhub.posting_service.restapi_grpc.RestApiGrpc/CountJobPostings", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +98,7 @@ func (c *restApiGrpcClient) JobPostingsById(ctx context.Context, in *JobPostings
 // for forward compatibility
 type RestApiGrpcServer interface {
 	JobPostings(context.Context, *JobPostingsRequest) (*JobPostingsResponse, error)
+	CountJobPostings(context.Context, *JobPostingsRequest) (*CountJobPostingsResponse, error)
 	JobPostingDetail(context.Context, *JobPostingDetailRequest) (*JobPostingDetailResponse, error)
 	Categories(context.Context, *emptypb.Empty) (*CategoriesResponse, error)
 	Skills(context.Context, *emptypb.Empty) (*SkillsResponse, error)
@@ -101,6 +112,9 @@ type UnimplementedRestApiGrpcServer struct {
 
 func (UnimplementedRestApiGrpcServer) JobPostings(context.Context, *JobPostingsRequest) (*JobPostingsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JobPostings not implemented")
+}
+func (UnimplementedRestApiGrpcServer) CountJobPostings(context.Context, *JobPostingsRequest) (*CountJobPostingsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CountJobPostings not implemented")
 }
 func (UnimplementedRestApiGrpcServer) JobPostingDetail(context.Context, *JobPostingDetailRequest) (*JobPostingDetailResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JobPostingDetail not implemented")
@@ -141,6 +155,24 @@ func _RestApiGrpc_JobPostings_Handler(srv interface{}, ctx context.Context, dec 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(RestApiGrpcServer).JobPostings(ctx, req.(*JobPostingsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RestApiGrpc_CountJobPostings_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(JobPostingsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RestApiGrpcServer).CountJobPostings(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/careerhub.posting_service.restapi_grpc.RestApiGrpc/CountJobPostings",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RestApiGrpcServer).CountJobPostings(ctx, req.(*JobPostingsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -227,6 +259,10 @@ var RestApiGrpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JobPostings",
 			Handler:    _RestApiGrpc_JobPostings_Handler,
+		},
+		{
+			MethodName: "CountJobPostings",
+			Handler:    _RestApiGrpc_CountJobPostings_Handler,
 		},
 		{
 			MethodName: "JobPostingDetail",

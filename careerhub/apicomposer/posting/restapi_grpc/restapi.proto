@@ -6,6 +6,7 @@ option go_package = "careerhub/posting_service/restapi_grpc";
 
 service RestApiGrpc{
     rpc JobPostings(JobPostingsRequest) returns (JobPostingsResponse);
+    rpc CountJobPostings(JobPostingsRequest) returns (CountJobPostingsResponse);
     rpc JobPostingDetail(JobPostingDetailRequest) returns (JobPostingDetailResponse);
     rpc Categories(google.protobuf.Empty) returns (CategoriesResponse);
     rpc Skills(google.protobuf.Empty) returns (SkillsResponse);
@@ -36,6 +37,10 @@ message SkillQueryReq {
 
 message JobPostingsResponse {
   repeated JobPostingRes jobPostings = 1;
+}
+
+message CountJobPostingsResponse {
+  int64 count = 1;
 }
 
 message JobPostingRes {

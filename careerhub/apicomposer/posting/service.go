@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/query"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
@@ -58,31 +59,36 @@ func (p *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPost
 	return jobPostings, nil
 }
 
-func (p *PostingService) JobPostings(ctx context.Context, req *JobPostingsRequest) ([]*domain.JobPosting, error) {
-	pbCategories := make([]*postingGrpc.CategoryQueryReq, len(req.QueryReq.Categories))
-	for i, category := range req.QueryReq.Categories {
+func convertQueryReqToGrpc(queryReq *query.Query) *postingGrpc.QueryReq {
+	pbCategories := make([]*postingGrpc.CategoryQueryReq, len(queryReq.Categories))
+	for i, category := range queryReq.Categories {
 		pbCategories[i] = &postingGrpc.CategoryQueryReq{
 			Site:         category.Site,
 			CategoryName: category.CategoryName,
 		}
 	}
 
-	pbSkillNames := make([]*postingGrpc.SkillQueryReq, len(req.QueryReq.SkillNames))
-	for i, skillNames := range req.QueryReq.SkillNames {
+	pbSkillNames := make([]*postingGrpc.SkillQueryReq, len(queryReq.SkillNames))
+	for i, skillNames := range queryReq.SkillNames {
 		pbSkillNames[i] = &postingGrpc.SkillQueryReq{
 			Or: skillNames,
 		}
 	}
 
+	return &postingGrpc.QueryReq{
+		Categories: pbCategories,
+		SkillNames: pbSkillNames,
+		MinCareer:  queryReq.MinCareer,
+		MaxCareer:  queryReq.MaxCareer,
+	}
+}
+
+func (p *PostingService) JobPostings(ctx context.Context, req *JobPostingsRequest) ([]*domain.JobPosting, error) {
+
 	jobPostings, err := p.postingClient.JobPostings(ctx, &postingGrpc.JobPostingsRequest{
-		Page: req.Page,
-		Size: req.Size,
-		QueryReq: &postingGrpc.QueryReq{
-			Categories: pbCategories,
-			SkillNames: pbSkillNames,
-			MinCareer:  req.QueryReq.MinCareer,
-			MaxCareer:  req.QueryReq.MaxCareer,
-		},
+		Page:     req.Page,
+		Size:     req.Size,
+		QueryReq: convertQueryReqToGrpc(req.QueryReq),
 	})
 
 	if err != nil {
@@ -92,6 +98,17 @@ func (p *PostingService) JobPostings(ctx context.Context, req *JobPostingsReques
 	jobPostingResList := domain.ConvertGrpcToJobPostingResList(jobPostings.JobPostings)
 
 	return jobPostingResList, nil
+}
+
+func (p *PostingService) CountJobPostings(ctx context.Context, reqQuery *query.Query) (int64, error) {
+	res, err := p.postingClient.CountJobPostings(ctx, &postingGrpc.JobPostingsRequest{
+		QueryReq: convertQueryReqToGrpc(reqQuery),
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	return res.Count, nil
 }
 
 func (p *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId string, jobPostings []*domain.JobPostingId) ([]*domain.ScrapJob, error) {

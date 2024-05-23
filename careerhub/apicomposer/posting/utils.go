@@ -34,7 +34,7 @@ func ExtractJobPostingsRequest(r *http.Request, initPage int) (*JobPostingsReque
 		return nil, fmt.Errorf("invalid size value. %d", size)
 	}
 
-	queryReq, err := GetQuery(queryValues.Get("encoded_query"))
+	queryReq, err := ExtractJobPostingQuery(r)
 	if err != nil {
 		return nil, err
 	}
@@ -44,6 +44,16 @@ func ExtractJobPostingsRequest(r *http.Request, initPage int) (*JobPostingsReque
 		Size:     int32(size),
 		QueryReq: queryReq,
 	}, nil
+}
+
+func ExtractJobPostingQuery(r *http.Request) (*query.Query, error) {
+	queryValues := r.URL.Query()
+	queryReq, err := GetQuery(queryValues.Get("encoded_query"))
+	if err != nil {
+		return nil, err
+	}
+
+	return queryReq, nil
 }
 
 func GetQuery(encodedQuery string) (*query.Query, error) {

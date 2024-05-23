@@ -29,6 +29,7 @@ func NewJobPostingController(postingService *posting.PostingService) *JobPosting
 
 func (c *JobPostingController) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/job_postings", c.JobPostings).Methods("GET")
+	router.HandleFunc("/job_postings/count", c.CountJobPostings).Methods("GET")
 	router.HandleFunc("/job_postings/{site}/{postingId}", c.JobPostingDetail).Methods("GET")
 	router.HandleFunc("/categories", c.Categories).Methods("GET")
 	router.HandleFunc("/skills", c.Skills).Methods("GET")
@@ -62,6 +63,33 @@ func (c *JobPostingController) JobPostings(w http.ResponseWriter, r *http.Reques
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(jobPostings)
+	if httputils.IsError(reqCtx, w, err) {
+		return
+	}
+}
+
+func (c *JobPostingController) CountJobPostings(w http.ResponseWriter, r *http.Request) {
+	reqCtx := r.Context()
+
+	queryReq, err := posting.ExtractJobPostingQuery(r)
+	if err != nil {
+		llog.LogErr(reqCtx, err)
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	count, err := c.postingService.CountJobPostings(reqCtx, queryReq)
+
+	if httputils.IsError(reqCtx, w, err) {
+		return
+	}
+
+	// count를 JSON으로 변환하여 응답
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(&struct {
+		Count int64 `json:"count"`
+	}{Count: count})
 	if httputils.IsError(reqCtx, w, err) {
 		return
 	}
