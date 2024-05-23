@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	initPage                   = 0
+	initPage                   = 1
 	messageInternalServerError = "Internal Server Error"
 )
 

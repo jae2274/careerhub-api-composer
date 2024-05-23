@@ -86,7 +86,7 @@ func convertQueryReqToGrpc(queryReq *query.Query) *postingGrpc.QueryReq {
 func (p *PostingService) JobPostings(ctx context.Context, req *JobPostingsRequest) ([]*domain.JobPosting, error) {
 
 	jobPostings, err := p.postingClient.JobPostings(ctx, &postingGrpc.JobPostingsRequest{
-		Page:     req.Page,
+		Page:     req.Page - 1,
 		Size:     req.Size,
 		QueryReq: convertQueryReqToGrpc(req.QueryReq),
 	})
