@@ -80,6 +80,7 @@ message JobPostingDetailResponse {
   string companyName = 15;
   repeated string companyImages = 16;
   repeated string tags = 17;
+  string status = 18;
 }
 message CategoriesResponse {
   repeated CategoryRes categoriesBySite = 1;

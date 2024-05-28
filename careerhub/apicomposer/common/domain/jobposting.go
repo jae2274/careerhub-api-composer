@@ -23,6 +23,7 @@ type JobPosting struct {
 	Addresses   []string    `json:"addresses"`
 	MinCareer   *int32      `json:"minCareer"`
 	MaxCareer   *int32      `json:"maxCareer"`
+	Status      string      `json:"status"`
 	ScrapInfo   *ScrapInfo  `json:"scrapInfo"`
 	ReviewInfo  *ReviewInfo `json:"reviewInfo,omitempty"`
 }
@@ -44,6 +45,7 @@ func ConvertGrpcToJobPostingRes(jobPosting *restapi_grpc.JobPostingRes) *JobPost
 		Addresses:   jobPosting.Addresses,
 		MinCareer:   jobPosting.MinCareer,
 		MaxCareer:   jobPosting.MaxCareer,
+		Status:      jobPosting.Status,
 	}
 }
 
@@ -117,6 +119,7 @@ type JobPostingDetail struct {
 	CompanyName      string      `json:"companyName"`
 	CompanyImages    []string    `json:"companyImages"`
 	Tags             []string    `json:"tags"`
+	Status           string      `json:"status"`
 	ScrapInfo        *ScrapInfo  `json:"scrapInfo"`
 	ReviewInfo       *ReviewInfo `json:"reviewInfo,omitempty"`
 	FirstPageReviews []*Review   `json:"firstPageReviews,omitempty"`
@@ -141,5 +144,6 @@ func ConvertGrpcToJobPostingDetail(jobPosting *restapi_grpc.JobPostingDetailResp
 		CompanyName:    jobPosting.CompanyName,
 		CompanyImages:  jobPosting.CompanyImages,
 		Tags:           jobPosting.Tags,
+		Status:         jobPosting.Status,
 	}
 }
