@@ -61,7 +61,7 @@ func CheckHasRole(role string) mux.MiddlewareFunc {
 				return
 			}
 
-			if !slices.Contains(claims.Roles, role) {
+			if !slices.Contains(claims.Authorities, role) {
 				w.WriteHeader(http.StatusForbidden)
 				return
 			}

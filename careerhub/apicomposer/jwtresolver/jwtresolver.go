@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/gorilla/mux"
@@ -13,8 +14,10 @@ import (
 )
 
 type JwtResolver struct {
-	secretKey []byte
-	validator *jwt.Validator
+	secretKey            []byte
+	validator            *jwt.Validator
+	accessTokenDuration  time.Duration
+	refreshTokenDuration time.Duration
 }
 
 type TokenInfo struct {
@@ -25,9 +28,70 @@ type TokenInfo struct {
 
 func NewJwtResolver(secretKey string) *JwtResolver {
 	return &JwtResolver{
-		secretKey: []byte(secretKey),
-		validator: jwt.NewValidator(),
+		secretKey:            []byte(secretKey),
+		validator:            jwt.NewValidator(),
+		accessTokenDuration:  10 * time.Minute,
+		refreshTokenDuration: 24 * time.Hour,
 	}
+}
+
+func (j *JwtResolver) SetAccessTokenDuration(duration time.Duration) error {
+	if duration < 0 {
+		return terr.New("duration must be positive")
+	}
+	j.accessTokenDuration = duration
+	return nil
+}
+
+func (j *JwtResolver) SetRefreshTokenDuration(duration time.Duration) error {
+	if duration < 0 {
+		return terr.New("duration must be positive")
+	}
+	j.refreshTokenDuration = duration
+	return nil
+}
+
+func (j *JwtResolver) GetAccessTokenDuration() time.Duration {
+	return j.accessTokenDuration
+}
+
+func (j *JwtResolver) GetRefreshTokenDuration() time.Duration {
+	return j.refreshTokenDuration
+}
+
+func (j *JwtResolver) CreateToken(userId string, authorities []string, createdAt time.Time) (*TokenInfo, error) {
+	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		&CustomClaims{
+			UserId:      userId,
+			Authorities: authorities,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(createdAt.Add(j.accessTokenDuration)),
+			},
+		},
+	).SignedString(j.secretKey)
+
+	if err != nil {
+		return nil, err
+	}
+
+	refreshToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256,
+		&CustomClaims{
+			UserId: userId,
+			RegisteredClaims: jwt.RegisteredClaims{
+				ExpiresAt: jwt.NewNumericDate(createdAt.Add(j.refreshTokenDuration)),
+			},
+		},
+	).SignedString(j.secretKey)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenInfo{
+		GrantType:    "Bearer",
+		AccessToken:  accessToken,
+		RefreshToken: refreshToken,
+	}, nil
 }
 
 func (j *JwtResolver) ParseToken(tokenString string) (*CustomClaims, bool, error) {
@@ -37,7 +101,13 @@ func (j *JwtResolver) ParseToken(tokenString string) (*CustomClaims, bool, error
 		return j.secretKey, nil
 	})
 
-	if jwtToken.Valid {
+	if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, jwt.ErrTokenNotValidYet) {
+		return &CustomClaims{}, false, nil
+	} else if errors.Is(err, jwt.ErrTokenMalformed) {
+		return &CustomClaims{}, false, terr.New("invalid token. token is malformed")
+	} else if err != nil {
+		return &CustomClaims{}, false, terr.Wrap(err)
+	} else if jwtToken.Valid {
 		if claims, ok := jwtToken.Claims.(*CustomClaims); ok {
 			if err := validator.Validate(claims); err != nil {
 				return claims, false, err
@@ -47,12 +117,8 @@ func (j *JwtResolver) ParseToken(tokenString string) (*CustomClaims, bool, error
 		} else {
 			return &CustomClaims{}, false, terr.New("invalid token. claims is not CustomClaims type")
 		}
-	} else if errors.Is(err, jwt.ErrTokenExpired) || errors.Is(err, jwt.ErrTokenNotValidYet) {
-		return &CustomClaims{}, false, nil
-	} else if errors.Is(err, jwt.ErrTokenMalformed) {
-		return &CustomClaims{}, false, terr.New("invalid token. token is malformed")
 	} else {
-		return &CustomClaims{}, false, terr.Wrap(err)
+		return &CustomClaims{}, false, nil
 	}
 }
 
@@ -84,7 +150,7 @@ func (j *JwtResolver) CheckHasRole(role string) mux.MiddlewareFunc {
 				return
 			}
 
-			if slices.Contains(claims.Roles, role) {
+			if slices.Contains(claims.Authorities, role) {
 				next.ServeHTTP(w, r)
 			} else {
 				w.WriteHeader(http.StatusForbidden)

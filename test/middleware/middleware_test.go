@@ -203,13 +203,13 @@ func initClient(t *testing.T, secretKey string, port int) *http.Client {
 	return &http.Client{}
 }
 
-func createAccessToken(t *testing.T, secretKey, userId string, roles []string) string {
+func createAccessToken(t *testing.T, secretKey, userId string, authorities []string) string {
 	now := time.Now()
 
 	accessToken, err := jwt.NewWithClaims(jwt.SigningMethodHS256,
 		&jwtresolver.CustomClaims{
-			UserId: userId,
-			Roles:  roles,
+			UserId:      userId,
+			Authorities: authorities,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    "careerhub.jyo-liar.com",                    //TODO: 임의 설정
 				Audience:  []string{"careerhub.jyo-liar.com"},          //TODO: 임의 설정
