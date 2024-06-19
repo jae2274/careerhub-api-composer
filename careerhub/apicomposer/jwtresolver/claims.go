@@ -8,9 +8,9 @@ type CustomClaims struct {
 	jwt.RegisteredClaims
 }
 
-func (c *CustomClaims) HasRole(role string) bool {
+func (c *CustomClaims) HasAuthority(authority string) bool {
 	for _, r := range c.Authorities {
-		if r == role {
+		if r == authority {
 			return true
 		}
 	}

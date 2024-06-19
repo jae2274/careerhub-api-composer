@@ -8,7 +8,7 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/user_authority"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/controller"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
@@ -33,7 +33,7 @@ const (
 
 	ctxKeyTraceID = string(mw.CtxKeyTraceID)
 
-	// needRole = "ROLE_CAREERHUB_USER"
+	// needAuthority = "AUTHORITY_CAREERHUB_USER"
 )
 
 func initLogger(ctx context.Context) error {
@@ -103,7 +103,7 @@ func Run(mainCtx context.Context) {
 
 	//reviewRouter 설정
 	reviewRouter := rootRouter.NewRoute().Subrouter()
-	reviewRouter.Use(middleware.CheckHasRole(userrole.RoleReadReview))
+	reviewRouter.Use(middleware.CheckHasAuthority(user_authority.AuthorityReadReview))
 
 	controller.NewReviewController(reviewService).RegisterRoutes(reviewRouter)
 

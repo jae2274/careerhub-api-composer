@@ -52,7 +52,7 @@ func CheckJustLoggedIn(next http.Handler) http.Handler {
 	})
 }
 
-func CheckHasRole(role string) mux.MiddlewareFunc {
+func CheckHasAuthority(authority string) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			claims, ok := GetClaims(r.Context())
@@ -61,7 +61,7 @@ func CheckHasRole(role string) mux.MiddlewareFunc {
 				return
 			}
 
-			if !slices.Contains(claims.Authorities, role) {
+			if !slices.Contains(claims.Authorities, authority) {
 				w.WriteHeader(http.StatusForbidden)
 				return
 			}

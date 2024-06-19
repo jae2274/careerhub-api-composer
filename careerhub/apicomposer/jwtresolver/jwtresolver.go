@@ -130,7 +130,7 @@ func (j *JwtResolver) Validate(claims *CustomClaims) error {
 	return j.validator.Validate(claims)
 }
 
-func (j *JwtResolver) CheckHasRole(role string) mux.MiddlewareFunc {
+func (j *JwtResolver) CheckHasAuthority(authority string) mux.MiddlewareFunc {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			tokenString := r.Header.Get("Authorization")
@@ -150,7 +150,7 @@ func (j *JwtResolver) CheckHasRole(role string) mux.MiddlewareFunc {
 				return
 			}
 
-			if slices.Contains(claims.Authorities, role) {
+			if slices.Contains(claims.Authorities, authority) {
 				next.ServeHTTP(w, r)
 			} else {
 				w.WriteHeader(http.StatusForbidden)

@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/user_authority"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
@@ -48,7 +48,7 @@ func (s *ScrapJobService) GetScrapJobs(ctx context.Context, claims *jwtresolver.
 
 	domain.AttachScrapped(jobPostings, scrapJobs)
 
-	if claims.HasRole(userrole.RoleReadReview) {
+	if claims.HasAuthority(user_authority.AuthorityReadReview) {
 		companyScores, err := s.getReviewScoresByCompanyNames(ctx, domain.GetCompanyNames(jobPostings))
 		if err != nil {
 			return nil, err

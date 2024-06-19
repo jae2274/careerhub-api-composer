@@ -6,7 +6,7 @@ import (
 
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/query"
-	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/userrole"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/user_authority"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/jwtresolver"
 	postingGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting/restapi_grpc"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review"
@@ -43,7 +43,7 @@ func (p *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPost
 
 	domain.AttachScrapped(jobPostings, scrapJobs)
 
-	if claims.HasRole(userrole.RoleReadReview) {
+	if claims.HasAuthority(user_authority.AuthorityReadReview) {
 		companyScores, err := p.getReviewScoresByCompanyNames(ctx, domain.GetCompanyNames(jobPostings))
 		if err != nil {
 			return nil, err
@@ -179,7 +179,7 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 		}
 	}
 
-	if claims.HasRole(userrole.RoleReadReview) {
+	if claims.HasAuthority(user_authority.AuthorityReadReview) {
 		companyScores, err := p.getReviewScoresByCompanyNames(ctx, []string{res.CompanyName})
 		if err != nil {
 			return nil, err

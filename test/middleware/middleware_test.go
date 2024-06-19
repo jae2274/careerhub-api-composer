@@ -72,7 +72,7 @@ func TestMiddleware(t *testing.T) {
 		})
 	})
 
-	t.Run("need role: admin", func(t *testing.T) {
+	t.Run("need authority: admin", func(t *testing.T) {
 		t.Run("response 401 without jwt", func(t *testing.T) {
 			res, err := initClient(t, secretKey, port).Get(rootURL + "/admin")
 			require.NoError(t, err)
@@ -82,7 +82,7 @@ func TestMiddleware(t *testing.T) {
 			require.Equal(t, "", getBody(res))
 		})
 
-		t.Run("response 403 with jwt but without role", func(t *testing.T) {
+		t.Run("response 403 with jwt but without authority", func(t *testing.T) {
 			req, err := http.NewRequest("GET", rootURL+"/admin", nil)
 			require.NoError(t, err)
 			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{}))
@@ -95,7 +95,7 @@ func TestMiddleware(t *testing.T) {
 			require.Equal(t, "", getBody(res))
 		})
 
-		t.Run("response 200 with jwt and role", func(t *testing.T) {
+		t.Run("response 200 with jwt and authority", func(t *testing.T) {
 			req, err := http.NewRequest("GET", rootURL+"/admin", nil)
 			require.NoError(t, err)
 			req.Header.Set("Authorization", createAccessToken(t, secretKey, "Jyo Liar", []string{"admin"}))
@@ -109,7 +109,7 @@ func TestMiddleware(t *testing.T) {
 		})
 	})
 
-	t.Run("need role for specify url path: manager", func(t *testing.T) {
+	t.Run("need authority for specify url path: manager", func(t *testing.T) {
 		t.Run("all response 401 without jwt", func(t *testing.T) {
 			testClient := initClient(t, secretKey, port)
 
@@ -123,7 +123,7 @@ func TestMiddleware(t *testing.T) {
 			}
 		})
 
-		t.Run("response 403 with jwt but without role", func(t *testing.T) {
+		t.Run("response 403 with jwt but without authority", func(t *testing.T) {
 			testClient := initClient(t, secretKey, port)
 
 			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
@@ -140,7 +140,7 @@ func TestMiddleware(t *testing.T) {
 			}
 		})
 
-		t.Run("response 200 with jwt and role", func(t *testing.T) {
+		t.Run("response 200 with jwt and authority", func(t *testing.T) {
 			testClient := initClient(t, secretKey, port)
 
 			for _, path := range []string{"/manager", "/manager/a", "/manager/a/b", "/manager/a/b/c"} {
@@ -180,11 +180,11 @@ func initRouter() *mux.Router {
 	myRouter.HandleFunc("", commonHandleFunc)
 
 	adminRouter := router.PathPrefix("/admin").Subrouter()
-	adminRouter.Use(middleware.CheckHasRole("admin"))
+	adminRouter.Use(middleware.CheckHasAuthority("admin"))
 	adminRouter.HandleFunc("", commonHandleFunc)
 
 	managerRouter := router.PathPrefix("/manager").Subrouter()
-	managerRouter.Use(middleware.CheckHasRole("manager"))
+	managerRouter.Use(middleware.CheckHasAuthority("manager"))
 	managerRouter.HandleFunc("", commonHandleFunc)
 	managerRouter.HandleFunc("/a", commonHandleFunc)
 	managerRouter.HandleFunc("/a/b", commonHandleFunc)
