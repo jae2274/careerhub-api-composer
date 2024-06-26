@@ -92,19 +92,24 @@ func Run(mainCtx context.Context) {
 	scrapJobService := userinfo.NewScrapJobService(scrapJobClient, postingClient, reviewClient)
 	reviewService := review.NewReviewService(reviewClient)
 
-	controller.NewJobPostingController(postingService).RegisterRoutes(rootRouter)
+	jobPostingRouter := rootRouter.NewRoute().Subrouter()
+	jobPostingRouter.Use(middleware.CheckHasAuthority(user_authority.AuthorityReadJobPosting))
+	controller.NewJobPostingController(postingService).RegisterRoutes(jobPostingRouter)
 
 	//userinfoRouter 설정
 	userinfoRouter := rootRouter.PathPrefix("/my").Subrouter()
-	userinfoRouter.Use(middleware.CheckJustLoggedIn)
+	scrapJobRouter := userinfoRouter.NewRoute().Subrouter()
+	scrapJobRouter.Use(middleware.CheckHasAuthority(user_authority.AuthorityScrapJob))
+	controller.NewScrapJobController(scrapJobService).RegisterRoutes(scrapJobRouter)
 
-	controller.NewMatchJobController(matchJobService).RegisterRoutes(userinfoRouter)
-	controller.NewScrapJobController(scrapJobService).RegisterRoutes(userinfoRouter)
+	//matchJobRouter 설정
+	matchJobRouter := userinfoRouter.NewRoute().Subrouter()
+	matchJobRouter.Use(middleware.CheckHasAuthority(user_authority.AuthorityMatchJob))
+	controller.NewMatchJobController(matchJobService).RegisterRoutes(matchJobRouter)
 
 	//reviewRouter 설정
 	reviewRouter := rootRouter.NewRoute().Subrouter()
 	reviewRouter.Use(middleware.CheckHasAuthority(user_authority.AuthorityReadReview))
-
 	controller.NewReviewController(reviewService).RegisterRoutes(reviewRouter)
 
 	var allowOrigins []string
