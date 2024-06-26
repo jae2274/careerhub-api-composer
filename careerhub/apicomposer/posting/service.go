@@ -35,13 +35,15 @@ func (p *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPost
 		return nil, err
 	}
 
-	scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, domain.GetJobPostingIds(jobPostings))
+	if claims.HasAuthority(user_authority.AuthorityScrapJob) {
+		scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, domain.GetJobPostingIds(jobPostings))
 
-	if err != nil {
-		return nil, err
+		if err != nil {
+			return nil, err
+		}
+
+		domain.AttachScrapped(jobPostings, scrapJobs)
 	}
-
-	domain.AttachScrapped(jobPostings, scrapJobs)
 
 	if claims.HasAuthority(user_authority.AuthorityReadReview) {
 		companyScores, err := p.getReviewScoresByCompanyNames(ctx, domain.GetCompanyNames(jobPostings))
@@ -155,27 +157,29 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 		return nil, err
 	}
 
-	scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, []*domain.JobPostingId{{Site: res.Site, PostingId: res.PostingId}})
-	if err != nil {
-		return nil, err
-	}
+	if claims.HasAuthority(user_authority.AuthorityScrapJob) {
+		scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, []*domain.JobPostingId{{Site: res.Site, PostingId: res.PostingId}})
+		if err != nil {
+			return nil, err
+		}
 
-	if len(scrapJobs) > 1 {
-		return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
-	}
-	if len(scrapJobs) == 1 {
-		tags := scrapJobs[0].Tags
-		if tags == nil {
-			tags = []string{}
+		if len(scrapJobs) > 1 {
+			return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
 		}
-		res.ScrapInfo = &domain.ScrapInfo{
-			IsScrapped: true,
-			Tags:       tags,
-		}
-	} else {
-		res.ScrapInfo = &domain.ScrapInfo{
-			IsScrapped: false,
-			Tags:       []string{},
+		if len(scrapJobs) == 1 {
+			tags := scrapJobs[0].Tags
+			if tags == nil {
+				tags = []string{}
+			}
+			res.ScrapInfo = &domain.ScrapInfo{
+				IsScrapped: true,
+				Tags:       tags,
+			}
+		} else {
+			res.ScrapInfo = &domain.ScrapInfo{
+				IsScrapped: false,
+				Tags:       []string{},
+			}
 		}
 	}
 
