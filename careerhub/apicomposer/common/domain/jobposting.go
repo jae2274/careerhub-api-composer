@@ -120,6 +120,9 @@ type JobPostingDetail struct {
 	CompanyImages    []string    `json:"companyImages"`
 	Tags             []string    `json:"tags"`
 	Status           string      `json:"status"`
+	PostUrl          string      `json:"postUrl"`
+	CompanyUrl       *string     `json:"companyUrl"`
+	CompanyLogo      string      `json:"companyLogo"`
 	ScrapInfo        *ScrapInfo  `json:"scrapInfo"`
 	ReviewInfo       *ReviewInfo `json:"reviewInfo,omitempty"`
 	FirstPageReviews []*Review   `json:"firstPageReviews,omitempty"`
@@ -145,5 +148,8 @@ func ConvertGrpcToJobPostingDetail(jobPosting *restapi_grpc.JobPostingDetailResp
 		CompanyImages:  jobPosting.CompanyImages,
 		Tags:           jobPosting.Tags,
 		Status:         jobPosting.Status,
+		PostUrl:        jobPosting.PostUrl,
+		CompanyUrl:     jobPosting.CompanyUrl,
+		CompanyLogo:    jobPosting.CompanyLogo,
 	}
 }

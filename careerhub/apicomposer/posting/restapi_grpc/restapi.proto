@@ -81,6 +81,9 @@ message JobPostingDetailResponse {
   repeated string companyImages = 16;
   repeated string tags = 17;
   string status = 18;
+  string postUrl = 19;
+  optional string companyUrl = 20;
+  string companyLogo = 21;
 }
 message CategoriesResponse {
   repeated CategoryRes categoriesBySite = 1;
