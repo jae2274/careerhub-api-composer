@@ -11,6 +11,7 @@ service RestApiGrpc{
     rpc Categories(google.protobuf.Empty) returns (CategoriesResponse);
     rpc Skills(google.protobuf.Empty) returns (SkillsResponse);
     rpc JobPostingsById(JobPostingsByIdRequest) returns (JobPostingsResponse);
+    rpc Companies(CompaniesRequest) returns (CompaniesResponse);
 }
 
 message JobPostingsRequest {
@@ -24,6 +25,7 @@ message QueryReq {
   repeated SkillQueryReq skillNames = 2;
   optional int32 minCareer = 3;
   optional int32 maxCareer = 4;
+  repeated SiteCompanyQueryReq companies = 5; 
 }
 
 message CategoryQueryReq {
@@ -33,6 +35,11 @@ message CategoryQueryReq {
 
 message SkillQueryReq {
   repeated string Or = 1;
+}
+
+message SiteCompanyQueryReq {
+  string site = 1;
+  string companyName = 2;
 }
 
 message JobPostingsResponse {
@@ -108,4 +115,24 @@ message JobPostingsByIdRequest {
 message JobPostingIdReq {
   string site = 1;
   string postingId = 2;
+}
+
+message CompaniesRequest {
+  string prefixKeyword = 1;
+  int64 limit = 2;
+}
+
+message CompaniesResponse {
+  repeated CompanyRes companies = 1;
+}
+
+message CompanyRes {
+  string defaultName = 1;
+  repeated SiteCompanyRes siteCompanies = 2;
+}
+
+message SiteCompanyRes {
+  string site = 1;
+  string companyId = 2;
+  string companyName = 3;
 }

@@ -33,6 +33,7 @@ func (c *JobPostingController) RegisterRoutes(router *mux.Router) {
 	router.HandleFunc("/job_postings/{site}/{postingId}", c.JobPostingDetail).Methods("GET")
 	router.HandleFunc("/categories", c.Categories).Methods("GET")
 	router.HandleFunc("/skills", c.Skills).Methods("GET")
+	router.HandleFunc("/companies", c.Companies).Methods("GET")
 	// c.router.HandleFunc(rootPath + "/match_job", c.).Methods("GET")
 }
 
@@ -158,6 +159,30 @@ func (c *JobPostingController) Skills(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(skills)
+	if httputils.IsError(reqCtx, w, err) {
+		return
+	}
+}
+
+func (c *JobPostingController) Companies(w http.ResponseWriter, r *http.Request) {
+	reqCtx := r.Context()
+
+	keyword := r.URL.Query().Get("keyword")
+	if keyword == "" {
+		http.Error(w, "keyword is required", http.StatusBadRequest)
+		return
+	}
+
+	companies, err := c.postingService.Companies(reqCtx, keyword)
+
+	if httputils.IsError(reqCtx, w, err) {
+		return
+	}
+
+	// companies를 JSON으로 변환하여 응답
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(companies)
 	if httputils.IsError(reqCtx, w, err) {
 		return
 	}

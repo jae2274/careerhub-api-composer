@@ -29,6 +29,7 @@ type RestApiGrpcClient interface {
 	Categories(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*CategoriesResponse, error)
 	Skills(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*SkillsResponse, error)
 	JobPostingsById(ctx context.Context, in *JobPostingsByIdRequest, opts ...grpc.CallOption) (*JobPostingsResponse, error)
+	Companies(ctx context.Context, in *CompaniesRequest, opts ...grpc.CallOption) (*CompaniesResponse, error)
 }
 
 type restApiGrpcClient struct {
@@ -93,6 +94,15 @@ func (c *restApiGrpcClient) JobPostingsById(ctx context.Context, in *JobPostings
 	return out, nil
 }
 
+func (c *restApiGrpcClient) Companies(ctx context.Context, in *CompaniesRequest, opts ...grpc.CallOption) (*CompaniesResponse, error) {
+	out := new(CompaniesResponse)
+	err := c.cc.Invoke(ctx, "/careerhub.posting_service.restapi_grpc.RestApiGrpc/Companies", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // RestApiGrpcServer is the server API for RestApiGrpc service.
 // All implementations must embed UnimplementedRestApiGrpcServer
 // for forward compatibility
@@ -103,6 +113,7 @@ type RestApiGrpcServer interface {
 	Categories(context.Context, *emptypb.Empty) (*CategoriesResponse, error)
 	Skills(context.Context, *emptypb.Empty) (*SkillsResponse, error)
 	JobPostingsById(context.Context, *JobPostingsByIdRequest) (*JobPostingsResponse, error)
+	Companies(context.Context, *CompaniesRequest) (*CompaniesResponse, error)
 	mustEmbedUnimplementedRestApiGrpcServer()
 }
 
@@ -127,6 +138,9 @@ func (UnimplementedRestApiGrpcServer) Skills(context.Context, *emptypb.Empty) (*
 }
 func (UnimplementedRestApiGrpcServer) JobPostingsById(context.Context, *JobPostingsByIdRequest) (*JobPostingsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method JobPostingsById not implemented")
+}
+func (UnimplementedRestApiGrpcServer) Companies(context.Context, *CompaniesRequest) (*CompaniesResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method Companies not implemented")
 }
 func (UnimplementedRestApiGrpcServer) mustEmbedUnimplementedRestApiGrpcServer() {}
 
@@ -249,6 +263,24 @@ func _RestApiGrpc_JobPostingsById_Handler(srv interface{}, ctx context.Context, 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _RestApiGrpc_Companies_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CompaniesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RestApiGrpcServer).Companies(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/careerhub.posting_service.restapi_grpc.RestApiGrpc/Companies",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RestApiGrpcServer).Companies(ctx, req.(*CompaniesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // RestApiGrpc_ServiceDesc is the grpc.ServiceDesc for RestApiGrpc service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -279,6 +311,10 @@ var RestApiGrpc_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "JobPostingsById",
 			Handler:    _RestApiGrpc_JobPostingsById_Handler,
+		},
+		{
+			MethodName: "Companies",
+			Handler:    _RestApiGrpc_Companies_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -77,11 +77,20 @@ func convertQueryReqToGrpc(queryReq *query.Query) *postingGrpc.QueryReq {
 		}
 	}
 
+	pbCompanies := make([]*postingGrpc.SiteCompanyQueryReq, 0, len(queryReq.Companies))
+	for _, company := range queryReq.Companies {
+		pbCompanies = append(pbCompanies, &postingGrpc.SiteCompanyQueryReq{
+			Site:        company.Site,
+			CompanyName: company.CompanyName,
+		})
+	}
+
 	return &postingGrpc.QueryReq{
 		Categories: pbCategories,
 		SkillNames: pbSkillNames,
 		MinCareer:  queryReq.MinCareer,
 		MaxCareer:  queryReq.MaxCareer,
+		Companies:  pbCompanies,
 	}
 }
 
@@ -224,4 +233,8 @@ func (p *PostingService) Categories(ctx context.Context) (*postingGrpc.Categorie
 
 func (p *PostingService) Skills(ctx context.Context) (*postingGrpc.SkillsResponse, error) {
 	return p.postingClient.Skills(ctx, &emptypb.Empty{})
+}
+
+func (p *PostingService) Companies(ctx context.Context, keyword string) (*postingGrpc.CompaniesResponse, error) {
+	return p.postingClient.Companies(ctx, &postingGrpc.CompaniesRequest{PrefixKeyword: keyword, Limit: 5})
 }
