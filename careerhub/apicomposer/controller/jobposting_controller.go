@@ -139,6 +139,8 @@ func (c *JobPostingController) Categories(w http.ResponseWriter, r *http.Request
 
 	// categories를 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "max-age=86400, public")
+
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(categories)
 	if httputils.IsError(reqCtx, w, err) {
@@ -157,6 +159,7 @@ func (c *JobPostingController) Skills(w http.ResponseWriter, r *http.Request) {
 
 	// skills를 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "max-age=86400, public")
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(skills)
 	if httputils.IsError(reqCtx, w, err) {
@@ -181,6 +184,8 @@ func (c *JobPostingController) Companies(w http.ResponseWriter, r *http.Request)
 
 	// companies를 JSON으로 변환하여 응답
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "max-age=43200, public")
+
 	w.WriteHeader(http.StatusOK)
 	err = json.NewEncoder(w).Encode(companies)
 	if httputils.IsError(reqCtx, w, err) {
