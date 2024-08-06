@@ -12,6 +12,8 @@ import (
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review"
 	reviewGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/review/restapi_grpc"
 	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
+	"github.com/jae2274/goutils/cchan/async"
+	"github.com/jae2274/goutils/llog"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -35,25 +37,47 @@ func (p *PostingService) JobPostingsWithClaims(ctx context.Context, req *JobPost
 		return nil, err
 	}
 
+	var scrapJobsChan <-chan async.Result[[]*domain.ScrapJob]
+	var companyScoresChan <-chan async.Result[*reviewGrpc.GetCompanyScoresResponse]
+
 	if claims.HasAuthority(user_authority.AuthorityScrapJob) {
-		scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, domain.GetJobPostingIds(jobPostings))
-
-		if err != nil {
-			return nil, err
-		}
-
-		domain.AttachScrapped(jobPostings, scrapJobs)
+		scrapJobsChan = async.ExecAsync(func() ([]*domain.ScrapJob, error) {
+			return p.getScrapJobsByPostingIds(ctx, claims.UserId, domain.GetJobPostingIds(jobPostings))
+		})
 	}
 
 	if claims.HasAuthority(user_authority.AuthorityReadReview) {
-		companyScores, err := p.getReviewScoresByCompanyNames(ctx, domain.GetCompanyNames(jobPostings))
-		if err != nil {
-			return nil, err
-		}
+		companyScoresChan = async.ExecAsync(func() (*reviewGrpc.GetCompanyScoresResponse, error) {
+			return p.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: domain.ReviewSite, CompanyNames: domain.GetCompanyNames(jobPostings)})
+		})
+	}
 
-		for _, jobPosting := range jobPostings {
-			if companyScore, ok := companyScores[jobPosting.CompanyName]; ok {
-				jobPosting.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScore)
+	if scrapJobsChan != nil {
+		scrapJobsResult := <-scrapJobsChan
+
+		scrapJobs := scrapJobsResult.Value
+		err := scrapJobsResult.Err
+
+		if err != nil { // if error occurs, just log it and continue
+			llog.LogErr(ctx, err)
+		} else {
+			domain.AttachScrapped(jobPostings, scrapJobs)
+		}
+	}
+
+	if companyScoresChan != nil {
+		companyScoresResult := <-companyScoresChan
+
+		companyScores := companyScoresResult.Value
+		err := companyScoresResult.Err
+
+		if err != nil { // if error occurs, just log it and continue
+			llog.LogErr(ctx, err)
+		} else {
+			for _, jobPosting := range jobPostings {
+				if companyScore, ok := companyScores.CompanyScores[jobPosting.CompanyName]; ok {
+					jobPosting.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScore)
+				}
 			}
 		}
 	}
@@ -151,13 +175,9 @@ func (p *PostingService) getScrapJobsByPostingIds(ctx context.Context, userId st
 	return scrapJobs, nil
 }
 
-func (p *PostingService) getReviewScoresByCompanyNames(ctx context.Context, companyNames []string) (map[string]*reviewGrpc.CompanyScore, error) {
-	res, err := p.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: domain.ReviewSite, CompanyNames: companyNames})
-	if err != nil {
-		return nil, err
-	}
-
-	return res.CompanyScores, nil
+type CompanyReviewInfo struct {
+	*reviewGrpc.CompanyScore
+	Reviews []*reviewGrpc.Review
 }
 
 func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *postingGrpc.JobPostingDetailRequest, claims *jwtresolver.CustomClaims) (*domain.JobPostingDetail, error) {
@@ -166,53 +186,86 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 		return nil, err
 	}
 
-	if claims.HasAuthority(user_authority.AuthorityScrapJob) {
-		scrapJobs, err := p.getScrapJobsByPostingIds(ctx, claims.UserId, []*domain.JobPostingId{{Site: res.Site, PostingId: res.PostingId}})
-		if err != nil {
-			return nil, err
-		}
+	var scrapJobsChan <-chan async.Result[[]*domain.ScrapJob]
+	var companyReviewInfoChan <-chan async.Result[*CompanyReviewInfo]
 
-		if len(scrapJobs) > 1 {
-			return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
-		}
-		if len(scrapJobs) == 1 {
-			tags := scrapJobs[0].Tags
-			if tags == nil {
-				tags = []string{}
+	if claims.HasAuthority(user_authority.AuthorityScrapJob) {
+		scrapJobsChan = async.ExecAsync(func() ([]*domain.ScrapJob, error) {
+			return p.getScrapJobsByPostingIds(ctx, claims.UserId, []*domain.JobPostingId{{Site: res.Site, PostingId: res.PostingId}})
+		})
+	}
+
+	if claims.HasAuthority(user_authority.AuthorityReadReview) {
+		companyReviewInfoChan = async.ExecAsync(func() (*CompanyReviewInfo, error) {
+			companyScore, err := p.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: domain.ReviewSite, CompanyNames: []string{res.CompanyName}})
+			if err != nil {
+				return nil, err
 			}
-			res.ScrapInfo = &domain.ScrapInfo{
-				IsScrapped: true,
-				Tags:       tags,
+
+			var companyReviewInfo CompanyReviewInfo
+			if companyScore.CompanyScores[res.CompanyName] != nil {
+				companyReviewInfo.CompanyScore = companyScore.CompanyScores[res.CompanyName]
+
+				reviewsRes, err := p.reviewClient.GetCompanyReviews(ctx, &reviewGrpc.GetCompanyReviewsRequest{
+					Site:        domain.ReviewSite,
+					CompanyName: res.CompanyName,
+					Offset:      0,
+					Limit:       review.DefaultSize,
+				})
+
+				if err != nil {
+					return nil, err
+				}
+
+				companyReviewInfo.Reviews = reviewsRes.Reviews
 			}
+
+			return &companyReviewInfo, nil
+		})
+	}
+
+	if scrapJobsChan != nil {
+		scrapJobsResult := <-scrapJobsChan
+
+		scrapJobs := scrapJobsResult.Value
+		err := scrapJobsResult.Err
+
+		if err != nil {
+			llog.LogErr(ctx, err)
 		} else {
-			res.ScrapInfo = &domain.ScrapInfo{
-				IsScrapped: false,
-				Tags:       []string{},
+			if len(scrapJobs) > 1 {
+				return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
+			}
+			if len(scrapJobs) == 1 {
+				tags := scrapJobs[0].Tags
+				if tags == nil {
+					tags = []string{}
+				}
+				res.ScrapInfo = &domain.ScrapInfo{
+					IsScrapped: true,
+					Tags:       tags,
+				}
+			} else {
+				res.ScrapInfo = &domain.ScrapInfo{
+					IsScrapped: false,
+					Tags:       []string{},
+				}
 			}
 		}
 	}
 
-	if claims.HasAuthority(user_authority.AuthorityReadReview) {
-		companyScores, err := p.getReviewScoresByCompanyNames(ctx, []string{res.CompanyName})
+	if companyReviewInfoChan != nil {
+		companyScoresResult := <-companyReviewInfoChan
+
+		companyScores := companyScoresResult.Value
+		err := companyScoresResult.Err
+
 		if err != nil {
-			return nil, err
+			llog.LogErr(ctx, err)
+		} else {
+			res.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScores.CompanyScore)
+			res.FirstPageReviews = domain.ConvertGrpcToReviews(companyScores.Reviews)
 		}
-
-		if companyScore, ok := companyScores[res.CompanyName]; ok {
-			res.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScore)
-		}
-
-		reviewsRes, err := p.reviewClient.GetCompanyReviews(ctx, &reviewGrpc.GetCompanyReviewsRequest{
-			Site:        domain.ReviewSite,
-			CompanyName: res.CompanyName,
-			Offset:      0,
-			Limit:       review.DefaultSize,
-		})
-		if err != nil {
-			return nil, err
-		}
-
-		res.FirstPageReviews = domain.ConvertGrpcToReviews(reviewsRes.Reviews)
 	}
 
 	return res, nil
