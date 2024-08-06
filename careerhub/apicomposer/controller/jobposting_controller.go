@@ -1,11 +1,13 @@
 package controller
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/domain"
+	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/common/query"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/httputils"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/middleware"
 	"github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/posting"
@@ -37,13 +39,25 @@ func (c *JobPostingController) RegisterRoutes(router *mux.Router) {
 	// c.router.HandleFunc(rootPath + "/match_job", c.).Methods("GET")
 }
 
+func IsInvalidQuery(ctx context.Context, w http.ResponseWriter, queryReq *query.Query, err error) bool {
+	if err != nil {
+		llog.LogErr(ctx, err) // 파싱 에러 발생으로 별도의 로깅 필요
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return true
+	} else if err := posting.IsValid(queryReq); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return true
+	}
+
+	return false
+}
+
 func (c *JobPostingController) JobPostings(w http.ResponseWriter, r *http.Request) {
 	reqCtx := r.Context()
 
 	req, err := posting.ExtractJobPostingsRequest(r, initPage)
-	if err != nil {
-		llog.LogErr(reqCtx, err)
-		http.Error(w, "bad request", http.StatusBadRequest)
+
+	if IsInvalidQuery(reqCtx, w, req.QueryReq, err) {
 		return
 	}
 
@@ -73,9 +87,8 @@ func (c *JobPostingController) CountJobPostings(w http.ResponseWriter, r *http.R
 	reqCtx := r.Context()
 
 	queryReq, err := posting.ExtractJobPostingQuery(r)
-	if err != nil {
-		llog.LogErr(reqCtx, err)
-		http.Error(w, "bad request", http.StatusBadRequest)
+
+	if IsInvalidQuery(reqCtx, w, queryReq, err) {
 		return
 	}
 

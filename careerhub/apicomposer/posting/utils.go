@@ -71,18 +71,6 @@ func GetQuery(encodedQuery string) (*query.Query, error) {
 		return nil, fmt.Errorf("invalid encoded_query value. failed to unmarshal. %s", string(bytes))
 	}
 
-	if queryReq.MinCareer != nil && *queryReq.MinCareer < 0 {
-		return nil, fmt.Errorf("invalid minCareer value. %d", *queryReq.MinCareer)
-	}
-
-	if queryReq.MaxCareer != nil && *queryReq.MaxCareer < 0 {
-		return nil, fmt.Errorf("invalid maxCareer value. %d", *queryReq.MaxCareer)
-	}
-
-	if queryReq.MinCareer != nil && queryReq.MaxCareer != nil && *queryReq.MinCareer > *queryReq.MaxCareer {
-		return nil, fmt.Errorf("invalid minCareer and maxCareer value. minCareer(%d) > maxCareer(%d)", *queryReq.MinCareer, *queryReq.MaxCareer)
-	}
-
 	return &queryReq, nil // TODO
 }
 
@@ -102,4 +90,20 @@ func ExtractJobPostingDetailRequest(r *http.Request) (*restapi_grpc.JobPostingDe
 		Site:      site,
 		PostingId: postingId,
 	}, nil
+}
+
+func IsValid(queryReq *query.Query) error {
+	if queryReq.MinCareer != nil && *queryReq.MinCareer < 0 {
+		return fmt.Errorf("invalid minCareer value. %d", *queryReq.MinCareer)
+	}
+
+	if queryReq.MaxCareer != nil && *queryReq.MaxCareer < 0 {
+		return fmt.Errorf("invalid maxCareer value. %d", *queryReq.MaxCareer)
+	}
+
+	if queryReq.MinCareer != nil && queryReq.MaxCareer != nil && *queryReq.MinCareer > *queryReq.MaxCareer {
+		return fmt.Errorf("invalid minCareer and maxCareer value. minCareer(%d) > maxCareer(%d)", *queryReq.MinCareer, *queryReq.MaxCareer)
+	}
+
+	return nil
 }
