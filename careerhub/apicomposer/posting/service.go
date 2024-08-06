@@ -14,6 +14,7 @@ import (
 	scrapGrpc "github.com/jae2274/careerhub-api-composer/careerhub/apicomposer/userinfo/restapi_grpc"
 	"github.com/jae2274/goutils/cchan/async"
 	"github.com/jae2274/goutils/llog"
+	"github.com/jae2274/goutils/optional"
 	"google.golang.org/protobuf/types/known/emptypb"
 )
 
@@ -187,7 +188,7 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 	}
 
 	var scrapJobsChan <-chan async.Result[[]*domain.ScrapJob]
-	var companyReviewInfoChan <-chan async.Result[*CompanyReviewInfo]
+	var companyReviewInfoChan <-chan async.Result[optional.Optional[CompanyReviewInfo]]
 
 	if claims.HasAuthority(user_authority.AuthorityScrapJob) {
 		scrapJobsChan = async.ExecAsync(func() ([]*domain.ScrapJob, error) {
@@ -196,14 +197,14 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 	}
 
 	if claims.HasAuthority(user_authority.AuthorityReadReview) {
-		companyReviewInfoChan = async.ExecAsync(func() (*CompanyReviewInfo, error) {
+		companyReviewInfoChan = async.ExecAsync(func() (optional.Optional[CompanyReviewInfo], error) {
 			companyScore, err := p.reviewClient.GetCompanyScores(ctx, &reviewGrpc.GetCompanyScoresRequest{Site: domain.ReviewSite, CompanyNames: []string{res.CompanyName}})
 			if err != nil {
-				return nil, err
+				return optional.NewEmptyOptional[CompanyReviewInfo](), err
 			}
 
-			var companyReviewInfo CompanyReviewInfo
 			if companyScore.CompanyScores[res.CompanyName] != nil {
+				var companyReviewInfo CompanyReviewInfo
 				companyReviewInfo.CompanyScore = companyScore.CompanyScores[res.CompanyName]
 
 				reviewsRes, err := p.reviewClient.GetCompanyReviews(ctx, &reviewGrpc.GetCompanyReviewsRequest{
@@ -214,13 +215,15 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 				})
 
 				if err != nil {
-					return nil, err
+					return optional.NewEmptyOptional[CompanyReviewInfo](), err
 				}
 
 				companyReviewInfo.Reviews = reviewsRes.Reviews
+				return optional.NewOptional(&companyReviewInfo), nil
+			} else {
+				return optional.NewEmptyOptional[CompanyReviewInfo](), nil
 			}
 
-			return &companyReviewInfo, nil
 		})
 	}
 
@@ -257,14 +260,16 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 	if companyReviewInfoChan != nil {
 		companyScoresResult := <-companyReviewInfoChan
 
-		companyScores := companyScoresResult.Value
+		companyScoresOpt := companyScoresResult.Value
 		err := companyScoresResult.Err
 
 		if err != nil {
 			llog.LogErr(ctx, err)
 		} else {
-			res.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScores.CompanyScore)
-			res.FirstPageReviews = domain.ConvertGrpcToReviews(companyScores.Reviews)
+			if companyScoresOpt.IsPresent() {
+				res.ReviewInfo = domain.ConvertGrpcToReviewInfo(companyScoresOpt.GetPtr().CompanyScore)
+				res.FirstPageReviews = domain.ConvertGrpcToReviews(companyScoresOpt.GetPtr().Reviews)
+			}
 		}
 	}
 
