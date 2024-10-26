@@ -93,7 +93,7 @@ func Run(mainCtx context.Context) {
 	reviewService := review.NewReviewService(reviewClient)
 
 	jobPostingRouter := rootRouter.NewRoute().Subrouter()
-	jobPostingRouter.Use(middleware.CheckHasAuthority(user_authority.AuthorityReadJobPosting))
+	// jobPostingRouter.Use(middleware.CheckHasAuthority(user_authority.AuthorityReadJobPosting))
 	controller.NewJobPostingController(postingService).RegisterRoutes(jobPostingRouter)
 
 	//userinfoRouter 설정
