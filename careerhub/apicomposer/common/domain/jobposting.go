@@ -128,7 +128,7 @@ type JobPostingDetail struct {
 	FirstPageReviews []*Review   `json:"firstPageReviews,omitempty"`
 }
 
-func ConvertGrpcToJobPostingDetail(jobPosting *restapi_grpc.JobPostingDetailResponse) *JobPostingDetail {
+func ConvertGrpcToJobPostingDetail(jobPosting *restapi_grpc.JobPostingDetailRes) *JobPostingDetail {
 	return &JobPostingDetail{
 		Site:           jobPosting.Site,
 		PostingId:      jobPosting.PostingId,

@@ -181,10 +181,10 @@ type CompanyReviewInfo struct {
 	Reviews []*reviewGrpc.Review
 }
 
-func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *postingGrpc.JobPostingDetailRequest, claims *jwtresolver.CustomClaims) (*domain.JobPostingDetail, error) {
-	res, err := p.JobPostingDetail(ctx, req)
-	if err != nil {
-		return nil, err
+func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *postingGrpc.JobPostingDetailRequest, claims *jwtresolver.CustomClaims) (*domain.JobPostingDetail, bool, error) {
+	res, isExist, err := p.JobPostingDetail(ctx, req)
+	if err != nil || !isExist {
+		return nil, isExist, err
 	}
 
 	var scrapJobsChan <-chan async.Result[[]*domain.ScrapJob]
@@ -237,7 +237,7 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 			llog.LogErr(ctx, err)
 		} else {
 			if len(scrapJobs) > 1 {
-				return nil, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
+				return nil, false, fmt.Errorf("multiple scrap jobs found for the same job posting id. site: %s, postingId: %s", res.Site, res.PostingId)
 			}
 			if len(scrapJobs) == 1 {
 				tags := scrapJobs[0].Tags
@@ -273,16 +273,20 @@ func (p *PostingService) JobPostingDetailWithClaims(ctx context.Context, req *po
 		}
 	}
 
-	return res, nil
+	return res, true, nil
 }
 
-func (p *PostingService) JobPostingDetail(ctx context.Context, req *postingGrpc.JobPostingDetailRequest) (*domain.JobPostingDetail, error) {
+func (p *PostingService) JobPostingDetail(ctx context.Context, req *postingGrpc.JobPostingDetailRequest) (*domain.JobPostingDetail, bool, error) {
 	res, err := p.postingClient.JobPostingDetail(ctx, req)
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 
-	return domain.ConvertGrpcToJobPostingDetail(res), nil
+	if !res.IsExist {
+		return nil, false, nil
+	}
+
+	return domain.ConvertGrpcToJobPostingDetail(res.Detail), true, nil
 }
 
 func (p *PostingService) Categories(ctx context.Context) (*postingGrpc.CategoriesResponse, error) {

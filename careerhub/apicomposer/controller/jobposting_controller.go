@@ -123,13 +123,17 @@ func (c *JobPostingController) JobPostingDetail(w http.ResponseWriter, r *http.R
 	claims, isExisted := middleware.GetClaims(r.Context())
 
 	var resp *domain.JobPostingDetail
+	var isExist bool
 	if isExisted {
-		resp, err = c.postingService.JobPostingDetailWithClaims(reqCtx, req, claims)
+		resp, isExist, err = c.postingService.JobPostingDetailWithClaims(reqCtx, req, claims)
 	} else {
-		resp, err = c.postingService.JobPostingDetail(reqCtx, req)
+		resp, isExist, err = c.postingService.JobPostingDetail(reqCtx, req)
 	}
 
 	if httputils.IsError(reqCtx, w, err) {
+		return
+	} else if !isExist {
+		http.Error(w, "job posting not found", http.StatusNotFound)
 		return
 	}
 

@@ -69,7 +69,12 @@ message JobPostingDetailRequest {
   string postingId = 2;
 }
 
-message JobPostingDetailResponse {
+message JobPostingDetailResponse{
+  bool IsExist = 1;
+  optional JobPostingDetailRes detail = 2;
+}
+
+message JobPostingDetailRes {
   string site = 1;
   string postingId = 2;
   string title = 3;
